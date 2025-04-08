@@ -1,5 +1,5 @@
-from fetch_rydoo import get_tickets
-from ocr_engine import analyze_ticket
+from app.fetch_rydoo import get_tickets
+from app.ocr_engine import analyze_ticket
 from email_sender import send_invoice_request
 
 def main():
