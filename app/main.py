@@ -1,6 +1,6 @@
-from app.fetch_rydoo import get_tickets
-from app.ocr_engine import analyze_ticket
-from app.email_dispatch import send_invoice_request
+from fetch_rydoo import get_tickets
+from ocr_engine import analyze_ticket
+from email_sender import send_invoice_request
 
 def main():
     tickets = get_tickets()
