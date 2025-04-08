@@ -24,9 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Write clean GCP credentials to file
-        run: |
-          echo "${{ secrets.GCP_CREDENTIALS }}" | jq '.' > credentials.json
+      - name: Write GCP credentials from base64
+        run: echo "${{ secrets.GCP_CREDENTIALS_B64 }}" | base64 --decode > credentials.json
 
       - name: Set PYTHONPATH and run tests
         env:
