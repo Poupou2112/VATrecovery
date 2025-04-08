@@ -14,6 +14,9 @@ import os
 import secrets
 from app.imap_listener import process_inbox
 from loguru import logger
+from fastapi import Header, Depends
+from app.models import User
+from app.init_db import SessionLocal
 
 load_dotenv()
 
@@ -23,6 +26,13 @@ templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 security = HTTPBasic()
+
+def get_user_by_token(token: str = Header(..., alias="X-API-Token")):
+    session = SessionLocal()
+    user = session.query(User).filter_by(api_token=token).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalide")
+    return user
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, os.getenv("DASHBOARD_USER"))
