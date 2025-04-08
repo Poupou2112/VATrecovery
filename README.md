@@ -1,26 +1,31 @@
+# VATrecovery
 
-# API TVA - Récupération automatisée
+**VATrecovery** est une application de récupération automatique de TVA sur notes de frais.  
+Elle permet de :
+- Scanner les reçus (OCR via Google Vision)
+- Envoyer des emails pour demander les factures
+- Suivre l’état des relances
+- Synchroniser les factures reçues via Gmail IMAP
+- Consulter l’activité via un dashboard web
+- Exposer une API REST sécurisée
 
-Ce projet permet :
-- De se connecter à une API tierce via OAuth2
-- De télécharger des reçus
-- D’envoyer automatiquement un e-mail de demande de facture
+---
 
-## Installation
+## 🔧 Technologies
+
+- **FastAPI** (API + serveur web)
+- **SQLAlchemy** (ORM)
+- **Google Cloud Vision** (OCR)
+- **SMTP / IMAP** (email)
+- **Loguru** (logs)
+- **Docker** (déploiement)
+
+---
+
+## 🚀 Lancer le projet
+
+### 1. Cloner le repo
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Créez un fichier `.env` en copiant `.env.example`.
-
-## Lancement
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Accédez à `http://localhost:8000/login` pour démarrer l'authentification OAuth.
-Test GitHub Actions
+git clone https://github.com/ton-user/VATrecovery.git
+cd VATrecovery
