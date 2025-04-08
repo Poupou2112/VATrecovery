@@ -4,6 +4,10 @@ import json
 import smtplib
 from email.message import EmailMessage
 from google.cloud import vision
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement
+load_dotenv()
 
 def extract_info_from_text(text: str) -> dict:
     data = {}
@@ -112,7 +116,7 @@ Reclaimy
         smtp.login(os.getenv("SMTP_USER"), os.getenv("SMTP_PASS"))
         smtp.send_message(msg)
 
-# Exemple d'usage (à faire dans un autre script)
+# Exemple d'usage (à faire dans un autre script ou test)
 if __name__ == "__main__":
     ticket_path = "app/static/test_ticket.jpg"
     to_email = "contact@societe.fr"
