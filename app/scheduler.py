@@ -3,8 +3,8 @@ from datetime import datetime
 import subprocess
 
 def run_reminder_script():
-    print(f"⏰ [Scheduler] Lancement de la relance - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    subprocess.run(["python", "app/reminder.py"])
+    print(f"⏰ Lancement de la relance : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    subprocess.run(["python", "app/reminder.py"], check=True)
 
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone="Europe/Madrid")
