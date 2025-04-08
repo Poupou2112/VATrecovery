@@ -17,6 +17,8 @@ from loguru import logger
 from fastapi import Header, Depends
 from app.models import User
 from app.init_db import SessionLocal
+from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 
@@ -26,6 +28,23 @@ templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 security = HTTPBasic()
+
+class ReceiptOut(BaseModel):
+    id: int
+    date: str | None = None
+    company_name: str | None = None
+    price_ttc: float | None = None
+    invoice_received: bool
+    email_sent: bool
+
+    class Config:
+        orm_mode = True
+
+@app.get("/api/receipts", response_model=list[ReceiptOut])
+def api_get_receipts(user: User = Depends(get_user_by_token)):
+    session = SessionLocal()
+    receipts = session.query(app.models.Receipt).filter_by(client_id=user.client_id).order_by(app.models.Receipt.created_at.desc()).all()
+    return receipts
 
 def get_user_by_token(token: str = Header(..., alias="X-API-Token")):
     session = SessionLocal()
