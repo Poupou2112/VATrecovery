@@ -1,3 +1,4 @@
+from app.scheduler import start_scheduler
 from app.init_db import SessionLocal
 from app.models import Receipt
 from app.fetch_rydoo import get_tickets
@@ -31,4 +32,5 @@ def main():
         send_invoice_request(ticket["email"], data)
 
 if __name__ == "__main__":
+    start_scheduler()
     main()
