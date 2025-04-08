@@ -1,7 +1,16 @@
 import os
-import re
 import json
-import smtplib
+import tempfile
+from google.cloud import vision
+
+# Crée le fichier temporaire de credentials depuis le secret JSON
+if "GOOGLE_APPLICATION_CREDENTIALS_JSON" in os.environ:
+    creds_json = os.environ["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as temp:
+        temp.write(creds_json)
+        temp.flush()
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp.name
+
 from email.message import EmailMessage
 from google.cloud import vision
 from dotenv import load_dotenv
