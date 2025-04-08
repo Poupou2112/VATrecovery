@@ -1,0 +1,66 @@
+name: CI - VATrecovery
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: 🔍 Tests + Lint
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
+      SMTP_FROM: fake@mail.com
+      SMTP_USER: fake
+      SMTP_PASS: fake
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 465
+      IMAP_EMAIL: fake
+      IMAP_PASSWORD: fake
+      IMAP_SERVER: imap.example.com
+      IMAP_PORT: 993
+      DASHBOARD_USER: admin
+      DASHBOARD_PASS: admin
+      SESSION_SECRET: dummy
+
+    steps:
+      - name: 🧬 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 🧪 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black pytest alembic
+
+      - name: 🛠️ Run Alembic migrations
+        run: alembic upgrade head
+
+      - name: ✅ Run tests
+        run: pytest --maxfail=1 --disable-warnings -q
+
+      - name: 🎨 Code formatting check
+        run: black . --check
