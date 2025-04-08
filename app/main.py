@@ -46,6 +46,17 @@ def api_get_receipts(user: User = Depends(get_user_by_token)):
     receipts = session.query(app.models.Receipt).filter_by(client_id=user.client_id).order_by(app.models.Receipt.created_at.desc()).all()
     return receipts
 
+@app.get("/api/stats")
+def api_stats(user: User = Depends(get_user_by_token)):
+    session = SessionLocal()
+    total = session.query(app.models.Receipt).filter_by(client_id=user.client_id).count()
+    received = session.query(app.models.Receipt).filter_by(client_id=user.client_id, invoice_received=True).count()
+    return {
+        "total_receipts": total,
+        "invoices_received": received,
+        "invoices_pending": total - received
+    }
+
 def get_user_by_token(token: str = Header(..., alias="X-API-Token")):
     session = SessionLocal()
     user = session.query(User).filter_by(api_token=token).first()
