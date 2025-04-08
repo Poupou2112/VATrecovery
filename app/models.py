@@ -8,6 +8,7 @@ class Receipt(Base):
     __tablename__ = "receipts"
 
     id = Column(Integer, primary_key=True)
+    client_id = Column(String, nullable=False)  # Nouveau champ ajouté
     file = Column(String)
     email_sent_to = Column(String)
     date = Column(String)
