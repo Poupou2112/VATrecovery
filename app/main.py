@@ -4,24 +4,28 @@ from app.scheduler import start_scheduler
 from app.init_db import init_db
 import subprocess
 
+# Créer l'application FastAPI
 app = FastAPI(title="VATrecovery")
 
-# Initialise la base de données
+# Initialiser la base de données
 init_db()
 
-# Démarre le scheduler (relance quotidienne)
+# Lancer le planificateur de tâches (relance à 9h tous les jours)
 start_scheduler()
 
-# Page d'accueil simple
+# Route de test pour vérifier que l'app tourne
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard bientôt disponible.</p>"
 
-# Route pour forcer la relance manuelle (sera reliée à un bouton plus tard)
-@app.post("/force-relance")
+# Route POST pour forcer une relance manuelle (depuis le dashboard)
+@app.post("/force-relance", response_class=HTMLResponse)
 async def force_relance(request: Request):
-    subprocess.run(["python", "app/reminder.py"])
-    return HTMLResponse("<p>✅ Relance manuelle effectuée.</p>")
+    try:
+        subprocess.run(["python", "app/reminder.py"], check=True)
+        return HTMLResponse("<p>✅ Relance manuelle effectuée avec succès.</p>")
+    except subprocess.CalledProcessError as e:
+        return HTMLResponse(f"<p>❌ Échec lors de la relance : {e}</p>", status_code=500)
 
 session = SessionLocal()
 
