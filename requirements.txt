@@ -6,3 +6,4 @@ jinja2
 boto3
 google-cloud-vision
 pytest
+python-dotenv
