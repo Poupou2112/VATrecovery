@@ -4,6 +4,22 @@ from app.models import Receipt
 from app.fetch_rydoo import get_tickets
 from app.ocr_engine import analyze_ticket
 from email_sender import send_invoice_request
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from app.scheduler import start_scheduler
+from app.init_db import init_db
+
+app = FastAPI(title="VATrecovery")
+
+# Initialise la base si besoin
+init_db()
+
+# Démarre le scheduler en arrière-plan
+start_scheduler()
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard bientôt disponible.</p>"
 
 session = SessionLocal()
 
