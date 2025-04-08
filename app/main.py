@@ -1,58 +1,63 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.scheduler import start_scheduler
-from app.init_db import init_db
+from app.init_db import init_db, SessionLocal
+from app.models import Receipt
+from dotenv import load_dotenv
 import subprocess
+import os
+import secrets
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # Créer l'application FastAPI
 app = FastAPI(title="VATrecovery")
 
+# Configuration des templates et fichiers statiques
+templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Authentification simple (HTTP Basic)
+security = HTTPBasic()
+
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, os.getenv("DASHBOARD_USER"))
+    correct_password = secrets.compare_digest(credentials.password, os.getenv("DASHBOARD_PASS"))
+    if not (correct_username and correct_password):
+        raise HTTPException(status_code=401, detail="Accès non autorisé")
+    return credentials.username
+
 # Initialiser la base de données
 init_db()
 
-# Lancer le planificateur de tâches (relance à 9h tous les jours)
+# Lancer le scheduler en arrière-plan
 start_scheduler()
 
-# Route de test pour vérifier que l'app tourne
+# Page d'accueil simple
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard bientôt disponible.</p>"
 
-# Route POST pour forcer une relance manuelle (depuis le dashboard)
+# Dashboard sécurisé avec liste des reçus
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request, user: str = Depends(authenticate)):
+    session = SessionLocal()
+    receipts = session.query(Receipt).order_by(Receipt.created_at.desc()).all()
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "title": "Dashboard",
+        "receipts": receipts
+    })
+
+# Relance manuelle depuis le dashboard
 @app.post("/force-relance", response_class=HTMLResponse)
-async def force_relance(request: Request):
+async def force_relance(request: Request, user: str = Depends(authenticate)):
     try:
         subprocess.run(["python", "app/reminder.py"], check=True)
         return HTMLResponse("<p>✅ Relance manuelle effectuée avec succès.</p>")
     except subprocess.CalledProcessError as e:
-        return HTMLResponse(f"<p>❌ Échec lors de la relance : {e}</p>", status_code=500)
-
-session = SessionLocal()
-
-receipt = Receipt(
-    file=ticket["file"],
-    email_sent_to=ticket["email"],
-    date=data.get("date"),
-    company_name=data.get("company_name"),
-    vat_number=data.get("vat_number"),
-    price_ttc=data.get("price_ttc"),
-    email_sent=True,
-    invoice_received=False
-)
-
-session.add(receipt)
-session.commit()
-print("🗂️ Reçu enregistré en base.")
-
-
-def main():
-    tickets = get_tickets()
-    for ticket in tickets:
-        print(f"📥 Traitement du ticket : {ticket['file']}")
-        data = analyze_ticket(ticket["file"])
-        print(f"📤 Envoi à : {ticket['email']} avec données : {data}")
-        send_invoice_request(ticket["email"], data)
-
-if __name__ == "__main__":
-    start_scheduler()
-    main()
+        return HTMLResponse(f"<p>❌ Erreur lors de la relance : {e}</p>", status_code=500)
