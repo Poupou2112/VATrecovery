@@ -7,3 +7,4 @@ boto3
 google-cloud-vision
 pytest
 python-dotenv
+sqlalchemy
