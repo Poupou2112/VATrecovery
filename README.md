@@ -1,6 +1,8 @@
 # VATrecovery
 ![CI](https://github.com/Poupou2112/VATrecovery/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Poupou2112/VATrecovery/branch/main/graph/badge.svg)](https://codecov.io/gh/Poupou2112/VATrecovery)
+![Docker](https://github.com/Poupou2112/VATrecovery/actions/workflows/docker.yml/badge.svg)
+
 
 **VATrecovery** est une application de récupération automatique de TVA sur notes de frais.  
 Elle permet de :
