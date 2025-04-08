@@ -7,6 +7,7 @@ from app.scheduler import start_scheduler
 from app.init_db import init_db, SessionLocal
 from app.models import Receipt
 from dotenv import load_dotenv
+from app.imap_listener import process_inbox
 import subprocess
 import os
 import secrets
@@ -54,10 +55,10 @@ async def dashboard(request: Request, user: str = Depends(authenticate)):
     })
 
 # Relance manuelle depuis le dashboard
-@app.post("/force-relance", response_class=HTMLResponse)
-async def force_relance(request: Request, user: str = Depends(authenticate)):
+@app.post("/sync-inbox", response_class=HTMLResponse)
+async def sync_inbox(request: Request, user: str = Depends(authenticate)):
     try:
-        subprocess.run(["python", "app/reminder.py"], check=True)
-        return HTMLResponse("<p>✅ Relance manuelle effectuée avec succès.</p>")
-    except subprocess.CalledProcessError as e:
-        return HTMLResponse(f"<p>❌ Erreur lors de la relance : {e}</p>", status_code=500)
+        process_inbox()
+        return HTMLResponse("<p>📥 Synchronisation des factures terminée.</p>")
+    except Exception as e:
+        return HTMLResponse(f"<p>❌ Erreur pendant la synchronisation : {e}</p>", status_code=500)
