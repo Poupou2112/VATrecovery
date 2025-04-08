@@ -1,6 +1,12 @@
+from app.fetch_rydoo import get_tickets
+from app.ocr_engine import analyze_ticket
+from app.email_dispatch import send_invoice_request
 
-from fastapi import FastAPI
-from app import auth, receipts, email_sender
+def main():
+    tickets = get_tickets()
+    for ticket in tickets:
+        data = analyze_ticket(ticket["file"])
+        send_invoice_request(ticket["email"], data)
 
-app = FastAPI()
-app.include_router(auth.router)
+if __name__ == "__main__":
+    main()
