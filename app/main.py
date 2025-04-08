@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -7,22 +8,18 @@ from app.scheduler import start_scheduler
 from app.init_db import init_db, SessionLocal
 from app.models import Receipt
 from dotenv import load_dotenv
-from app.imap_listener import process_inbox
 import subprocess
 import os
 import secrets
+from app.imap_listener import process_inbox
 
-# Charger les variables d'environnement
 load_dotenv()
 
-# Créer l'application FastAPI
 app = FastAPI(title="VATrecovery")
 
-# Configuration des templates et fichiers statiques
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Authentification simple (HTTP Basic)
 security = HTTPBasic()
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
@@ -32,18 +29,13 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Accès non autorisé")
     return credentials.username
 
-# Initialiser la base de données
 init_db()
-
-# Lancer le scheduler en arrière-plan
 start_scheduler()
 
-# Page d'accueil simple
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard bientôt disponible.</p>"
+    return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard disponible sur /dashboard.</p>"
 
-# Dashboard sécurisé avec liste des reçus
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user: str = Depends(authenticate)):
     session = SessionLocal()
@@ -54,7 +46,14 @@ async def dashboard(request: Request, user: str = Depends(authenticate)):
         "receipts": receipts
     })
 
-# Relance manuelle depuis le dashboard
+@app.post("/force-relance", response_class=HTMLResponse)
+async def force_relance(request: Request, user: str = Depends(authenticate)):
+    try:
+        subprocess.run(["python", "app/reminder.py"], check=True)
+        return HTMLResponse("<p>✅ Relance manuelle effectuée avec succès.</p>")
+    except subprocess.CalledProcessError as e:
+        return HTMLResponse(f"<p>❌ Erreur lors de la relance : {e}</p>", status_code=500)
+
 @app.post("/sync-inbox", response_class=HTMLResponse)
 async def sync_inbox(request: Request, user: str = Depends(authenticate)):
     try:
