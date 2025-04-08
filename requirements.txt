@@ -1,7 +1,8 @@
-
 fastapi
 uvicorn
 requests
 python-multipart
 jinja2
 boto3
+google-cloud-vision
+pytest
