@@ -1,7 +1,7 @@
 def get_tickets():
     return [
         {
-            "file": "app/static/test_ticket1.jpg",
+            "file": "app/static/IMG_2089.jpg",
             "email": "test@example.com"
         }
     ]
