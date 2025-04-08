@@ -59,8 +59,9 @@ jobs:
       - name: 🛠️ Run Alembic migrations
         run: alembic upgrade head
 
-      - name: ✅ Run tests
-        run: pytest --maxfail=1 --disable-warnings -q
+      - name: ✅ Run tests with coverage
+        run: pytest --cov=app --cov-report=term-missing --cov-report=xml
+
 
       - name: 🎨 Code formatting check
         run: black . --check
