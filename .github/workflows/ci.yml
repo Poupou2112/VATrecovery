@@ -61,15 +61,13 @@ jobs:
 
       - name: ✅ Run tests with coverage
         run: pytest --cov=app --cov-report=term-missing --cov-report=xml
-      
+
       - name: 📤 Upload coverage reports to Codecov
-  uses: codecov/codecov-action@v3
-  with:
-    token: ${{ secrets.CODECOV_TOKEN }}
-    files: ./coverage.xml
-    fail_ci_if_error: true
-
-
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
 
       - name: 🎨 Code formatting check
         run: black . --check
