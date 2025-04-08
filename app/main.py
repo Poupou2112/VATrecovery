@@ -12,6 +12,7 @@ import subprocess
 import os
 import secrets
 from app.imap_listener import process_inbox
+from loguru import logger
 
 load_dotenv()
 
@@ -39,7 +40,8 @@ async def root():
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user: str = Depends(authenticate)):
     session = SessionLocal()
-    receipts = session.query(Receipt).order_by(Receipt.created_at.desc()).all()
+    client_id = os.getenv("DASHBOARD_CLIENT_ID", "default_client")
+    receipts = session.query(Receipt).filter_by(client_id=client_id).order_by(Receipt.created_at.desc()).all()
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "title": "Dashboard",
@@ -50,14 +52,18 @@ async def dashboard(request: Request, user: str = Depends(authenticate)):
 async def force_relance(request: Request, user: str = Depends(authenticate)):
     try:
         subprocess.run(["python", "app/reminder.py"], check=True)
+        logger.info("Relance manuelle effectuée.")
         return HTMLResponse("<p>✅ Relance manuelle effectuée avec succès.</p>")
     except subprocess.CalledProcessError as e:
+        logger.error(f"Erreur relance : {e}")
         return HTMLResponse(f"<p>❌ Erreur lors de la relance : {e}</p>", status_code=500)
 
 @app.post("/sync-inbox", response_class=HTMLResponse)
 async def sync_inbox(request: Request, user: str = Depends(authenticate)):
     try:
         process_inbox()
+        logger.info("Synchronisation IMAP effectuée.")
         return HTMLResponse("<p>📥 Synchronisation des factures terminée.</p>")
     except Exception as e:
+        logger.error(f"Erreur IMAP : {e}")
         return HTMLResponse(f"<p>❌ Erreur pendant la synchronisation : {e}</p>", status_code=500)
