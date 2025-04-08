@@ -1,25 +1,27 @@
-from app.scheduler import start_scheduler
-from app.init_db import SessionLocal
-from app.models import Receipt
-from app.fetch_rydoo import get_tickets
-from app.ocr_engine import analyze_ticket
-from email_sender import send_invoice_request
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from app.scheduler import start_scheduler
 from app.init_db import init_db
+import subprocess
 
 app = FastAPI(title="VATrecovery")
 
-# Initialise la base si besoin
+# Initialise la base de données
 init_db()
 
-# Démarre le scheduler en arrière-plan
+# Démarre le scheduler (relance quotidienne)
 start_scheduler()
 
+# Page d'accueil simple
 @app.get("/", response_class=HTMLResponse)
 async def root():
     return "<h1>✅ VATrecovery est en ligne</h1><p>Dashboard bientôt disponible.</p>"
+
+# Route pour forcer la relance manuelle (sera reliée à un bouton plus tard)
+@app.post("/force-relance")
+async def force_relance(request: Request):
+    subprocess.run(["python", "app/reminder.py"])
+    return HTMLResponse("<p>✅ Relance manuelle effectuée.</p>")
 
 session = SessionLocal()
 
