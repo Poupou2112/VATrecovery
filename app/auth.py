@@ -1,30 +1,18 @@
+# Structure principale du projet Reclaimy (automatisé)
 
-from fastapi import APIRouter
-from fastapi.responses import RedirectResponse
-import requests
-import os
+# Fichier: app/main.py
+from app.fetch_rydoo import get_mock_tickets
+from app.ocr_engine import analyze_ticket
+from app.email_dispatch import send_invoice_request
 
-router = APIRouter()
 
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI")
+def main():
+    print("=== Reclaimy v1 - Démarrage ===")
+    tickets = get_mock_tickets()
+    for ticket in tickets:
+        ocr_data = analyze_ticket(ticket["file"])
+        send_invoice_request(ticket["email"], ocr_data)
 
-@router.get("/login")
-def login():
-    url = f"https://example.com/oauth/authorize?response_type=code&client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read"
-    return RedirectResponse(url)
 
-@router.get("/callback")
-def callback(code: str):
-    token_url = "https://example.com/oauth/token"
-    data = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": REDIRECT_URI,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET
-    }
-    r = requests.post(token_url, data=data)
-    tokens = r.json()
-    return tokens
+if __name__ == "__main__":
+    main()
