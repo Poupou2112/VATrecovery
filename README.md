@@ -23,3 +23,4 @@ uvicorn app.main:app --reload
 ```
 
 Accédez à `http://localhost:8000/login` pour démarrer l'authentification OAuth.
+Test GitHub Actions
