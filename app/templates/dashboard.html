@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+<form method="post" action="/force-relance">
+    <button class="btn">🔁 Relancer maintenant</button>
+</form>
+
+<h2>🧾 Reçus enregistrés</h2>
+<table>
+    <tr>
+        <th>ID</th><th>Date</th><th>Société</th><th>Montant TTC</th>
+        <th>Facture reçue</th><th>Email envoyé</th>
+    </tr>
+    {% for r in receipts %}
+    <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.date }}</td>
+        <td>{{ r.company_name }}</td>
+        <td>{{ r.price_ttc }} €</td>
+        <td>{{ "✅" if r.invoice_received else "❌" }}</td>
+        <td>{{ "✅" if r.email_sent else "❌" }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
