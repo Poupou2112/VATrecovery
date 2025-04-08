@@ -7,6 +7,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from app.scheduler import start_scheduler
 from app.init_db import init_db, SessionLocal
 from app.models import Receipt
+from app.models import User
 from dotenv import load_dotenv
 import subprocess
 import os
