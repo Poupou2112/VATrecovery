@@ -1,4 +1,5 @@
 # VATrecovery
+![CI](https://github.com/Poupou2112/VATrecovery/actions/workflows/ci.yml/badge.svg)
 
 **VATrecovery** est une application de récupération automatique de TVA sur notes de frais.  
 Elle permet de :
