@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ title or "VATrecovery" }}</title>
-    <style>
-        body { font-family: Arial; padding: 2rem; background-color: #f8f8f8; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 0.5rem; border: 1px solid #ccc; text-align: left; }
-        .btn { padding: 0.4rem 1rem; background-color: #007bff; color: white; border: none; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <title>{{ title or "VATrecovery" }}</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
+    h1, h2 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; border: 1px solid #ccc; text-align: left; }
+    .btn { background: #007bff; color: white; padding: 0.5rem 1rem; border: none; cursor: pointer; }
+    .status { font-weight: bold; }
+    .ok { color: green; }
+    .no { color: red; }
+  </style>
 </head>
 <body>
-    <h1>{{ title }}</h1>
-    {% block content %}{% endblock %}
+  <h1>{{ title }}</h1>
+  {% block content %}{% endblock %}
 </body>
 </html>
