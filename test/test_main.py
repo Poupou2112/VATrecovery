@@ -1,14 +1,22 @@
-from fetch_rydoo import get_tickets
-from ocr_engine import analyze_ticket
+from fastapi.testclient import TestClient
+from main import app
 
-def test_ticket_analysis():
-    tickets = get_tickets()
-    assert tickets, "Aucun ticket reçu"
+client = TestClient(app)
 
-    ticket = tickets[0]
-    data = analyze_ticket(ticket["file"])
+def test_root():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "VATrecovery est en ligne" in response.text
 
-    assert isinstance(data, dict)
-    assert "company_name" in data
-    assert "date" in data
-    assert "price_ttc" in data or "price_ht" in data or "vat" in data
+def test_dashboard_auth_fail():
+    response = client.get("/dashboard")
+    assert response.status_code == 401
+
+def test_api_without_token():
+    response = client.get("/api/receipts")
+    assert response.status_code == 422  # Missing header
+
+# Pour tester avec un token valide :
+def test_api_with_fake_token():
+    response = client.get("/api/receipts", headers={"X-API-Token": "invalid_token"})
+    assert response.status_code == 401
