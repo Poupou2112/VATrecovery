@@ -1,3 +1,9 @@
+
+---
+
+### ⚙️ 3. Fichier `.github/workflows/ci.yml` final
+
+```yaml
 name: CI - VATrecovery
 
 on:
@@ -49,13 +55,13 @@ jobs:
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: 🧪 Install dependencies
+      - name: 📦 Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black pytest alembic pytest-cov
+          pip install black pytest alembic pytest-cov psycopg2-binary
 
       - name: 🔧 Fix PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
