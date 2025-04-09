@@ -13,6 +13,12 @@ from email.message import EmailMessage
 
 load_dotenv()
 
+# app/imap_listener.py
+def parse_email_for_invoice(email_content):
+    # Simule une extraction
+    return {"from": "supplier@example.com", "attachments": []}
+
+
 def extract_text_from_pdf_attachment(part):
     file_data = part.get_payload(decode=True)
     pdf_reader = PdfReader(io.BytesIO(file_data))
