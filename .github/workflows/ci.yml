@@ -39,6 +39,7 @@ jobs:
       IMAP_PORT: 993
       DASHBOARD_USER: admin
       DASHBOARD_PASS: admin
+      DASHBOARD_CLIENT_ID: reclaimy
       SESSION_SECRET: dummy
 
     steps:
@@ -54,7 +55,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black pytest alembic
+          pip install black pytest alembic pytest-cov
+
+      - name: 🔧 Fix PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: 🛠️ Run Alembic migrations
         run: alembic upgrade head
