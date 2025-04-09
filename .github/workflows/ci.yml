@@ -73,6 +73,6 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: true
 
-      - name: 🎨 Format code with black
+      - name: 🎨 Auto-format code with Black
         run: black .
 
