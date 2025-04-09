@@ -45,8 +45,10 @@ def match_receipt(text: str, session) -> Receipt | None:
                     target_date = datetime.strptime(r.date, "%d/%m/%Y") + timedelta(days=delta)
                     if target_date.strftime("%d/%m/%Y") in text or target_date.strftime("%Y-%m-%d") in text:
                         return r
-        except:
-            continue
+        except Exception as e:
+    print(f"⚠️ Erreur parsing date : {e}")
+    continue
+
     return None
 
 def send_thank_you_email(receipt: Receipt):
