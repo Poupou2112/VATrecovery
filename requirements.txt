@@ -6,9 +6,11 @@ jinja2
 boto3
 google-cloud-vision
 pytest
+pytest-cov
 python-dotenv
 sqlalchemy
 apscheduler
 Dockerfile
 httpx
 werkzeug
+alembic
