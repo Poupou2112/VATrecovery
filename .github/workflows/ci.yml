@@ -27,21 +27,20 @@ jobs:
           --health-retries 5
 
     env:
-  
-  DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb  # ✅ CORRIGÉ
-  SMTP_FROM: fake@mail.com
-  SMTP_USER: fake
-  SMTP_PASS: fake
-  SMTP_HOST: smtp.example.com
-  SMTP_PORT: 465
-  IMAP_EMAIL: fake
-  IMAP_PASSWORD: fake
-  IMAP_SERVER: imap.example.com
-  IMAP_PORT: 993
-  DASHBOARD_USER: admin
-  DASHBOARD_PASS: admin
-  DASHBOARD_CLIENT_ID: reclaimy
-  SESSION_SECRET: dummy
+      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+      SMTP_FROM: fake@mail.com
+      SMTP_USER: fake
+      SMTP_PASS: fake
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 465
+      IMAP_EMAIL: fake
+      IMAP_PASSWORD: fake
+      IMAP_SERVER: imap.example.com
+      IMAP_PORT: 993
+      DASHBOARD_USER: admin
+      DASHBOARD_PASS: admin
+      DASHBOARD_CLIENT_ID: reclaimy
+      SESSION_SECRET: dummy
 
     steps:
       - name: 🧬 Checkout code
