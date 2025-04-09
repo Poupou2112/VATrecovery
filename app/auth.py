@@ -1,18 +1,10 @@
-# Structure principale du projet Reclaimy (automatisé)
+from fastapi import Header, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.models import User
+from app.init_db import get_db
 
-# Fichier: app/main.py
-from app.fetch_rydoo import get_mock_tickets
-from app.ocr_engine import analyze_ticket
-from app.email_dispatch import send_invoice_request
-
-
-def main():
-    print("=== Reclaimy v1 - Démarrage ===")
-    tickets = get_mock_tickets()
-    for ticket in tickets:
-        ocr_data = analyze_ticket(ticket["file"])
-        send_invoice_request(ticket["email"], ocr_data)
-
-
-if __name__ == "__main__":
-    main()
+def get_current_user(x_api_token: str = Header(...), db: Session = Depends(get_db)) -> User:
+    user = db.query(User).filter_by(api_token=x_api_token).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid API token")
+    return user
