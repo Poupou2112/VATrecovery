@@ -14,3 +14,4 @@ Dockerfile
 httpx
 werkzeug
 alembic
+PyPDF2>=3.0.0
