@@ -57,5 +57,11 @@ Elle permet de :
 ### 1. Cloner le repo
 
 ```bash
-git clone https://github.com/ton-user/VATrecovery.git
+git clone https://github.com/Poupou2112/VATrecovery.git
 cd VATrecovery
+
+## 📡 Exemple d’appel API
+
+```bash
+curl -H "X-API-Token: ton_token" http://localhost:8000/api/receipts
+
