@@ -4,6 +4,23 @@ from email.message import EmailMessage
 from jinja2 import Template
 import os
 
+def send_email(to, subject, body, attachment_path=None):
+    msg = EmailMessage()
+    msg["From"] = "support@reclaimy.io"
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    if attachment_path:
+        with open(attachment_path, "rb") as f:
+            msg.add_attachment(f.read(), maintype="application", subtype="octet-stream", filename=attachment_path)
+
+    with smtplib.SMTP_SSL("smtp.example.com", 465) as smtp:
+        smtp.login("fake", "fake")
+        smtp.send_message(msg)
+
+    return True
+
 def send_invoice_request(to_email, client_info, receipt_path):
     msg = EmailMessage()
     msg["Subject"] = f"Demande de facture – {client_info['company_name']}"
