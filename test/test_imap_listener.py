@@ -11,7 +11,7 @@ def test_extract_text_from_pdf_attachment():
     # Création d'un PDF en mémoire
     pdf_writer = PdfWriter()
     from PyPDF2.generic import RectangleObject
-    from PyPDF2.pdf import PageObject
+    from PyPDF2 import PageObject
     page = PageObject.create_blank_page(width=200, height=200)
     pdf_writer.add_page(page)
 
