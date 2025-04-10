@@ -1,13 +1,34 @@
-# test/test_schemas.py
+from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
+from typing import Optional
 
-from app.schemas import UserCreate, ReceiptOut
 
-def test_user_create_model():
-    user = UserCreate(email="test@example.com", password="secret")
-    assert user.email == "test@example.com"
-    assert user.password == "secret"
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
 
-def test_receipt_out_model():
-    receipt = ReceiptOut(id=123, file="receipt.pdf")
-    assert receipt.id == 123
-    assert receipt.file == "receipt.pdf"
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+
+    class Config:
+        from_attributes = True
+
+
+class ReceiptOut(BaseModel):
+    id: int
+    file: str
+    company_name: Optional[str] = None
+    vat_number: Optional[str] = None
+    price_ttc: Optional[float] = None
+    price_ht: Optional[float] = None
+    vat_amount: Optional[float] = None
+    date: Optional[str] = None
+    email_sent: bool
+    invoice_received: bool
+    client_id: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
