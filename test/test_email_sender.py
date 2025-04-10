@@ -1,8 +1,6 @@
-# test/test_email_sender.py
-import pytest
-from email.message import EmailMessage
 from app.email_sender import send_email
-
+from email.message import EmailMessage
+import pytest
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -12,7 +10,7 @@ def test_send_email_success(monkeypatch):
             assert isinstance(msg, EmailMessage)
             assert msg["To"] == "recipient@example.com"
             assert msg["Subject"] == "Hello"
-            assert msg.get_content() == "Test body"
+            assert msg.get_content().strip() == "Test body"
         def quit(self): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
