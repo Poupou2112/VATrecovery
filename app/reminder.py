@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
-from app.init_db import SessionLocal
 from app.models import Receipt, User
 from app.email_sender import send_email
+from app.init_db import SessionLocal
+from datetime import datetime, timedelta
+
 
 def send_reminder():
     session = SessionLocal()
@@ -13,17 +14,21 @@ def send_reminder():
         Receipt.created_at < limit
     ).all()
 
+    sent_count = 0
     for receipt in receipts:
         user = session.query(User).filter_by(client_id=receipt.client_id).first()
         if not user:
             continue
 
-        email_sent = send_email(
+        body = f"Bonjour,\n\nNous n'avons pas encore reçu la facture pour votre achat du {receipt.date} chez {receipt.company_name} (montant : {receipt.price_ttc} €).\n\nPouvez-vous nous l’envoyer ?\n\nMerci d’avance.\n\n— L’équipe Reclaimy"
+
+        send_email(
             to=receipt.email_sent_to,
-            subject="⏰ Relance - Facture en attente",
-            body=f"Bonjour, nous attendons toujours la facture pour l'achat du {receipt.date} ({receipt.price_ttc} €). Merci de nous l'envoyer."
+            subject="⏰ Rappel facture manquante",
+            body=body,
+            attachment_path=None
         )
-        if email_sent:
-            print(f"✉️ Relance envoyée pour le reçu {receipt.id}")
+        sent_count += 1
 
     session.close()
+    return sent_count
