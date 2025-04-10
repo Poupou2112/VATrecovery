@@ -28,14 +28,18 @@ def test_extract_text_from_pdf_attachment():
 
 
 def test_match_receipt():
-    class FakeSession:
-        def query(self, model):
-            class Query:
-                def filter_by(self, **kwargs):
-                    return [
-                        Receipt(id=1, company_name="Uber", price_ttc=28.45, date="20/03/2025")
-                    ]
-            return Query()
+    class FakeQuery:
+    def __init__(self, items):
+        self.items = items
+
+    def filter_by(self, **kwargs):
+        # Filtrer les items en fonction des critères fournis
+        filtered_items = [item for item in self.items if all(getattr(item, k) == v for k, v in kwargs.items())]
+        return FakeQuery(filtered_items)
+
+    def all(self):
+        return self.items
+
 
     text = "Uber\n20/03/2025\nMontant TTC : 28,45 €"
     receipt = match_receipt(text, FakeSession())
