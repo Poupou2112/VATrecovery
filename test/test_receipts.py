@@ -1,19 +1,34 @@
-# test/test_receipts.py
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
-from fastapi.testclient import TestClient
-from app.main import app
 
-client = TestClient(app)
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
 
-def test_list_receipts_unauthorized():
-    response = client.get("/dashboard/receipts")
-    assert response.status_code in (401, 403)
 
-def test_list_receipts_authorized(monkeypatch):
-    class FakeUser:
-        client_id = "reclaimy"
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
 
-    monkeypatch.setattr("app.auth.get_current_user", lambda: FakeUser())
+    class Config:
+        from_attributes = True
 
-    response = client.get("/dashboard/receipts", headers={"X-API-Token": "dummy"})
-    assert response.status_code in (200, 302)  # 302 = possible redirection
+
+class ReceiptOut(BaseModel):
+    id: int
+    file: str
+    company_name: Optional[str] = None
+    vat_number: Optional[str] = None
+    price_ttc: Optional[float] = None
+    price_ht: Optional[float] = None
+    vat_amount: Optional[float] = None
+    date: Optional[str] = None
+    email_sent: bool
+    invoice_received: bool
+    client_id: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
