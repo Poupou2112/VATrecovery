@@ -13,11 +13,8 @@ from email.message import EmailMessage
 
 load_dotenv()
 
-# app/imap_listener.py
 def parse_email_for_invoice(email_content):
-    # Simule une extraction
     return {"from": "supplier@example.com", "attachments": []}
-
 
 def extract_text_from_pdf_attachment(part):
     file_data = part.get_payload(decode=True)
@@ -30,25 +27,24 @@ def extract_text_from_pdf_attachment(part):
 def match_receipt(text: str, session) -> Receipt | None:
     receipts = session.query(Receipt).filter_by(invoice_received=False).all()
     for r in receipts:
-        # Vérifie société
         if r.company_name and r.company_name.lower() not in text.lower():
             continue
-        # Vérifie montant TTC
         if r.price_ttc:
             ttc_str = str(int(r.price_ttc)).replace(".", ",")
             if ttc_str not in text and str(int(r.price_ttc)) not in text:
                 continue
-        # Vérifie date (±1 jour)
         try:
             for delta in [-1, 0, 1]:
                 if r.date:
                     target_date = datetime.strptime(r.date, "%d/%m/%Y") + timedelta(days=delta)
-                    if target_date.strftime("%d/%m/%Y") in text or target_date.strftime("%Y-%m-%d") in text:
+                    if (
+                        target_date.strftime("%d/%m/%Y") in text
+                        or target_date.strftime("%Y-%m-%d") in text
+                    ):
                         return r
         except Exception as e:
-    print(f"⚠️ Erreur parsing date : {e}")
-    continue
-
+            print(f"⚠️ Erreur parsing date : {e}")
+            return None
     return None
 
 def send_thank_you_email(receipt: Receipt):
