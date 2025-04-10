@@ -1,0 +1,23 @@
+codecov:
+  token: f2c2215f-7200-4e3d-999c-f9fe0f6e4c8f  # Ton token privé pour repo privé
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...100"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+github_checks:
+  annotations: true
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: true
+      loop: true
+      method: true
+      macro: true
