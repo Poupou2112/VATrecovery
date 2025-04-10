@@ -20,19 +20,20 @@ def extract_info_from_text(text: str) -> dict:
     if match:
         data["date"] = match.group(1)
 
-    # TTC
-    match = re.search(r'TTC\s?:?\s?(\d+,\d{2})', text)
+    # TTC : accepte virgule ou point, et espaces optionnels
+    match = re.search(r'TTC\s?:?\s?(\d+[,.]\d{2})', text)
     if match:
         data["price_ttc"] = float(match.group(1).replace(",", "."))
 
     # HT
-    match = re.search(r'HT\s?:?\s?(\d+,\d{2})', text)
+    match = re.search(r'HT\s?:?\s?(\d+[,.]\d{2})', text)
     if match:
         data["price_ht"] = float(match.group(1).replace(",", "."))
 
     # TVA
-    match = re.search(r'TVA\s?:?\s?(\d+,\d{2})', text)
+    match = re.search(r'TVA\s?:?\s?(\d+[,.]\d{2})', text)
     if match:
         data["vat"] = float(match.group(1).replace(",", "."))
 
     return data
+
