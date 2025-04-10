@@ -1,38 +1,53 @@
 # test/test_email_sender.py
 
-import pytest
+import smtplib
+from email.message import EmailMessage
+from jinja2 import Template
+import os
 
-def test_send_email_mock(monkeypatch):
-    class MockSMTP:
-        def __init__(self, *args, **kwargs):
-            self.sent_message = None
+def send_email(to, subject, body, attachment_path=None):
+    msg = EmailMessage()
+    msg["From"] = "support@reclaimy.io"
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
 
-        def login(self, *args, **kwargs):
-            pass
+    if attachment_path:
+        with open(attachment_path, "rb") as f:
+            msg.add_attachment(
+                f.read(),
+                maintype="application",
+                subtype="octet-stream",
+                filename=attachment_path
+            )
 
-        def send_message(self, msg):
-            self.sent_message = msg
+    with smtplib.SMTP_SSL("smtp.example.com", 465) as smtp:
+        smtp.login("fake", "fake")
+        smtp.send_message(msg)
 
-        def quit(self):
-            pass
+    return True
 
-        def __enter__(self):
-            return self
+def send_invoice_request(to_email, client_info, receipt_path):
+    msg = EmailMessage()
+    msg["Subject"] = f"Demande de facture – {client_info['company_name']}"
+    msg["From"] = os.getenv("EMAIL_FROM")
+    msg["To"] = to_email
 
-        def __exit__(self, *args):
-            pass
+    with open("app/templates/request_invoice.html") as f:
+        template = Template(f.read())
+        html = template.render(**client_info)
 
-    mock_smtp = MockSMTP()
-    monkeypatch.setattr("smtplib.SMTP_SSL", lambda *args, **kwargs: mock_smtp)
+    msg.set_content("Version HTML requise")
+    msg.add_alternative(html, subtype="html")
 
-    result = send_email(
-        to="test@example.com",
-        subject="Test Subject",
-        body="This is a test email body.",
-        attachment_path=None
-    )
+    with open(receipt_path, "rb") as f:
+        msg.add_attachment(
+            f.read(), maintype="application", subtype="pdf", filename="reçu.pdf"
+        )
 
-    assert result is True
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(os.getenv("EMAIL_FROM"), os.getenv("EMAIL_PASSWORD"))
+        smtp.send_message(msg)
     assert mock_smtp.sent_message is not None
     assert mock_smtp.sent_message["To"] == "test@example.com"
     assert mock_smtp.sent_message["Subject"] == "Test Subject"
