@@ -1,3 +1,5 @@
+# test/test_schemas.py
+
 from app.schemas import UserCreate, ReceiptOut
 
 def test_user_create_model():
@@ -6,6 +8,6 @@ def test_user_create_model():
     assert user.password == "secret"
 
 def test_receipt_out_model():
-    receipt = ReceiptOut(id=1, file="receipt.pdf")
-    assert receipt.id == 1
+    receipt = ReceiptOut(id=123, file="receipt.pdf")
+    assert receipt.id == 123
     assert receipt.file == "receipt.pdf"
