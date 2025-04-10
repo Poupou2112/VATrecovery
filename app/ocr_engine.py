@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 def extract_info_from_text(text: str) -> dict:
     data = {}
@@ -15,24 +16,19 @@ def extract_info_from_text(text: str) -> dict:
     if match:
         data["vat_number"] = match.group(1)
 
-    # Date (française ou ISO)
-    match = re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', text)
-    if match:
-        data["date"] = match.group(1)
-
-    # TTC : accepte virgule ou point, et espaces optionnels
-    match = re.search(r'TTC\s?:?\s?(\d+[,.]\d{2})', text)
+    # TTC (Total amount including tax)
+    match = re.search(r'TTC\s*[:\-]?\s*(\d+[\.,]\d+)', text, re.IGNORECASE)
     if match:
         data["price_ttc"] = float(match.group(1).replace(",", "."))
 
-    # HT
-    match = re.search(r'HT\s?:?\s?(\d+[,.]\d{2})', text)
+    # Date
+    match = re.search(r'(\d{2}/\d{2}/\d{4})', text)
     if match:
-        data["price_ht"] = float(match.group(1).replace(",", "."))
-
-    # TVA
-    match = re.search(r'TVA\s?:?\s?(\d+[,.]\d{2})', text)
-    if match:
-        data["vat"] = float(match.group(1).replace(",", "."))
+        try:
+            datetime.strptime(match.group(1), "%d/%m/%Y")
+            data["date"] = match.group(1)
+        except ValueError:
+            pass
 
     return data
+
