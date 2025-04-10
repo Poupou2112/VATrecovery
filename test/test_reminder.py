@@ -6,7 +6,7 @@ def test_send_reminder_mock(monkeypatch):
     class FakeQuery:
         def filter(self, *args, **kwargs): return self
         def filter_by(self, *args, **kwargs): return self
-        def all(self):  # Pour la récupération des reçus à relancer
+        def all(self):
             return [Receipt(
                 id=1,
                 file="test.jpg",
@@ -16,8 +16,8 @@ def test_send_reminder_mock(monkeypatch):
                 created_at=datetime.utcnow() - timedelta(days=10),
                 client_id="reclaimy"
             )]
-        def first(self):  # Pour récupérer l'utilisateur
-            return User(api_token="token", client_id="reclaimy")
+        def first(self):
+            return User(api_token="tok", client_id="reclaimy")
 
     class FakeSession:
         def query(self, model): return FakeQuery()
