@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 def test_send_reminder_mock(monkeypatch):
     class FakeQuery:
-        def filter(self, *args, **kwargs): return self
-        def filter_by(self, *args, **kwargs): return self
+        def filter(self, *args, **kwargs):
+            return self
         def all(self):
             return [Receipt(
                 id=1,
@@ -14,10 +14,14 @@ def test_send_reminder_mock(monkeypatch):
                 invoice_received=False,
                 email_sent_to="contact@test.com",
                 created_at=datetime.utcnow() - timedelta(days=10),
-                client_id="reclaimy"
+                client_id=123,
+                date="01/04/2025",
+                price_ttc=28.45
             )]
+        def filter_by(self, **kwargs):
+            return self
         def first(self):
-            return User(api_token="tok", client_id="reclaimy")
+            return User(client_id=123, email="user@example.com")
 
     class FakeSession:
         def query(self, model): return FakeQuery()
