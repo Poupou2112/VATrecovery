@@ -4,7 +4,7 @@ from datetime import datetime
 def extract_info_from_text(text: str) -> dict:
     data = {}
 
-    # Nom de l'entreprise : première ligne en majuscules
+    # Nom de l'entreprise
     for line in text.split("\n"):
         line = line.strip()
         if line.isupper() and len(line) > 2:
@@ -34,6 +34,6 @@ def extract_info_from_text(text: str) -> dict:
     # TVA
     match = re.search(r"TVA\s*[:=]?\s*(\d+[.,]?\d*)", text, re.IGNORECASE)
     if match:
-        data["vat"] = float(match.group(1).replace(",", "."))
+        data["vat_amount"] = float(match.group(1).replace(",", "."))
 
     return data
