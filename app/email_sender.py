@@ -1,7 +1,6 @@
 # test/test_email_sender.py
 
 import pytest
-from app.email_sender import send_email
 
 def test_send_email_mock(monkeypatch):
     class MockSMTP:
