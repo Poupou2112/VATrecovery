@@ -13,4 +13,4 @@ def test_extract_info_minimal():
     assert data["date"] == "20/03/2025"
     assert data["price_ttc"] == 28.45
     assert data["price_ht"] == 23.13
-    assert data["vat"] == 5.32
+    assert data["vat_amount"] == 5.32
