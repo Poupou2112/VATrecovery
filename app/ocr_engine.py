@@ -36,4 +36,3 @@ def extract_info_from_text(text: str) -> dict:
         data["vat"] = float(match.group(1).replace(",", "."))
 
     return data
-
