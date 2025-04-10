@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from datetime import datetime
 
@@ -13,8 +13,8 @@ class ReceiptOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True  # pour Pydantic v2+
+        json_schema_extra = {
             "example": {
                 "id": 42,
                 "file": "uber_madrid_2024.jpg",
@@ -28,5 +28,5 @@ class ReceiptOut(BaseModel):
         }
 
 class SendInvoiceRequest(BaseModel):
-    email: str = Field(..., example="contact@uber.com")
+    email: EmailStr = Field(..., example="contact@uber.com")
     ticket_id: int = Field(..., example=42)
