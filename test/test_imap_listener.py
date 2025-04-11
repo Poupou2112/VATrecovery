@@ -21,5 +21,5 @@ def test_match_receipt(monkeypatch):
     processor = EmailProcessor()
     dummy_text = "Total TTC : 34.50 EUR"
     receipt = {"ocr_text": dummy_text}
-    match = processor.match_receipt(receipt, dummy_text)
+    match = processor.match_receipt(receipt)
     assert isinstance(match, bool)
