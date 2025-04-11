@@ -18,3 +18,10 @@ PyPDF2>=3.0.0
 loguru>=0.7.0
 psycopg2-binary
 pydantic[email]
+python-dotenv
+loguru
+email-validator
+redis
+opencv-python
+pytesseract
+PyPDF2
