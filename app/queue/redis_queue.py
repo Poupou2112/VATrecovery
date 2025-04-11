@@ -243,12 +243,12 @@ class RedisQueue:
                 pipe.hset(task_key, "error", error)
                 pipe.lrem(processing_key, 1, task_id)
                 pipe.execute()
-                
-            logger.error(f"Task {task_id} failed: {error}")
-            return True
-        except Exception as e:
-                        logger.error(f"Error failing task {task_id}: {e}")
-            return False
+
+         logger.error(f"Task {task_id} failed: {error}")
+         return True
+     except Exception as e:
+         logger.error(f"Error failing task {task_id}: {e}")
+         return False
 
     def get_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
         """
