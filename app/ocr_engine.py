@@ -1,128 +1,69 @@
-import os
-import re
-import logging
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
-from typing import Dict, Any, Optional
+from werkzeug.security import generate_password_hash, check_password_hash
+from secrets import token_urlsafe
 
-from google.cloud import vision
+Base = declarative_base()
 
-logger = logging.getLogger(__name__)
+class User(Base):
+    __tablename__ = "users"
 
-class OCREngine:
-    def __init__(self, enable_vision: bool = True):
-        self.client = None
-        if enable_vision:
-            try:
-                self.client = vision.ImageAnnotatorClient()
-            except Exception as e:
-                logger.critical(f"❌ Échec d'initialisation du client Google Vision: {e}")
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    client_id = Column(String, nullable=False, index=True)
+    api_token = Column(String, unique=True, index=True, default=lambda: token_urlsafe(32))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    
+    # Relations
+    receipts = relationship("Receipt", back_populates="user")
 
-    def extract_text_from_image(self, image_path: str) -> str:
-        if not self.client:
-            raise RuntimeError("Client Google Vision non initialisé")
+    def set_password(self, password: str):
+        self.password_hash = generate_password_hash(password)
 
-        with open(image_path, "rb") as image_file:
-            content = image_file.read()
-        image = vision.Image(content=content)
-        response = self.client.text_detection(image=image)
-        return response.text_annotations[0].description if response.text_annotations else ""
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+    
+    @classmethod
+    def get_by_token(cls, session, token):
+        return session.query(cls).filter_by(api_token=token, is_active=True).first()
 
-    def extract_info_from_text(self, text: str) -> Dict[str, Any]:
-        """
-        Extrait les informations pertinentes du texte OCR avec validation améliorée.
-        """
-        data = {}
-        patterns = self._compile_regex_patterns()
+class Receipt(Base):
+    __tablename__ = "receipts"
 
-        # Nom de l'entreprise
-        for line in text.split("\n")[:8]:
-            line = line.strip()
-            if line and len(line) > 3:
-                if line.isupper():
-                    data["company_name"] = line
-                    break
-                elif "company_name" not in data and len(line) > 5:
-                    data["company_name"] = line
-
-        # Identifiant fiscal
-        for pattern in patterns["tax_id"]:
-            match = pattern.search(text)
-            if match:
-                data["tax_id"] = match.group(0).replace(' ', '')
-                break
-
-        # Date
-        for pattern in patterns["date_patterns"]:
-            match = pattern.search(text)
-            if match:
-                date_str = match.group(1)
-                try:
-                    for fmt in ("%d/%m/%y", "%d/%m/%Y", "%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d"):
-                        try:
-                            date = datetime.strptime(date_str, fmt)
-                            data["date"] = date.strftime("%Y-%m-%d")
-                            break
-                        except ValueError:
-                            continue
-                    if "date" in data:
-                        break
-                except Exception:
-                    continue
-
-        # Montants : net, total, vat, vat_rate
-        for field, field_patterns in {
-            k: v for k, v in patterns.items() if k not in ["tax_id", "date_patterns"]
-        }.items():
-            for pattern in field_patterns:
-                match = pattern.search(text)
-                if match:
-                    try:
-                        value = match.group(1).replace(",", ".").strip()
-                        data[field] = int(value) if field == "vat_rate" else round(float(value), 2)
-                        break
-                    except Exception:
-                        continue
-
-        self._calculate_missing_values(data)
-        self._validate_data(data)
-        logger.info(f"✅ Données extraites: {data}")
-        return data
-
-    def _compile_regex_patterns(self) -> Dict[str, Any]:
-        return {
-            "tax_id": [
-                re.compile(r"(ES)?\s?([A-Z]\d{8}|\d{8}[A-Z]|[A-Z]\d{7}[A-Z])"),  # CIF/NIF
-                re.compile(r"(ES)?\s?(\d{9})"),  # Numéro à 9 chiffres
-            ],
-            "date_patterns": [
-                re.compile(r"(\d{2}/\d{2}/\d{2,4})"),
-                re.compile(r"(\d{2}-\d{2}-\d{4})"),
-                re.compile(r"(\d{2}\.\d{2}\.\d{4})"),
-                re.compile(r"(\d{4}-\d{2}-\d{2})"),
-            ],
-            "net": [re.compile(r"(?i)\b(?:HT|NET)\s*[:\-]?\s*(\d+[.,]?\d*)")],
-            "total": [re.compile(r"(?i)\b(?:TTC|TOTAL)\s*[:\-]?\s*(\d+[.,]?\d*)")],
-            "vat": [re.compile(r"(?i)\b(?:TVA|VAT)\s*[:\-]?\s*(\d+[.,]?\d*)")],
-            "vat_rate": [re.compile(r"(?i)(?:TAUX|TVA|VAT)[^\d]{0,5}(\d{1,2})\s*%")]
-        }
-
-    def _calculate_missing_values(self, data: Dict[str, Any]) -> None:
-        if "vat" not in data:
-            if "total" in data and "net" in data:
-                data["vat"] = round(data["total"] - data["net"], 2)
-            elif "net" in data and "vat_rate" in data:
-                data["vat"] = round(data["net"] * data["vat_rate"] / 100, 2)
-
-        if "total" not in data:
-            if "net" in data and "vat" in data:
-                data["total"] = round(data["net"] + data["vat"], 2)
-
-        if "net" not in data:
-            if "total" in data and "vat" in data:
-                data["net"] = round(data["total"] - data["vat"], 2)
-
-    def _validate_data(self, data: Dict[str, Any]) -> None:
-        if "total" in data and "net" in data and "vat" in data:
-            expected_total = round(data["net"] + data["vat"], 2)
-            if abs(expected_total - data["total"]) > 0.05:
-                logger.warning(f"💡 Incohérence détectée : total attendu = {expected_total}, total trouvé = {data['total']}")
+    id = Column(Integer, primary_key=True, index=True)
+    file = Column(String, nullable=False)
+    email_sent_to = Column(String, nullable=False)
+    date = Column(String, nullable=True)
+    company_name = Column(String, nullable=True)
+    vat_number = Column(String, nullable=True)
+    price_ttc = Column(Float, nullable=True)
+    price_ht = Column(Float, nullable=True)
+    vat_amount = Column(Float, nullable=True)
+    vat_rate = Column(Integer, nullable=True)
+    email_sent = Column(Boolean, default=False)
+    invoice_received = Column(Boolean, default=False)
+    ocr_text = Column(String, nullable=True)
+    
+    # Clés étrangères
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    client_id = Column(String, nullable=False, index=True)
+    
+    # Relations
+    user = relationship("User", back_populates="receipts")
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @classmethod
+    def get_pending_receipts(cls, session, days=5):
+        """Récupère les reçus en attente de facture depuis plus de X jours"""
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        return session.query(cls).filter(
+            cls.invoice_received == False,
+            cls.email_sent == True,
+            cls.created_at < cutoff
+        ).all()
