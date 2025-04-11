@@ -1,4 +1,9 @@
-from app.ocr_engine import extract_info_from_text
+from app.ocr_engine import OCREngine
+
+def test_extract_info_from_text():
+    engine = OCREngine()
+    result = engine.extract_info_from_text("TEXTE FACTURE D’EXEMPLE")
+    assert isinstance(result, dict)
 
 def test_extract_info_minimal():
     text = """
