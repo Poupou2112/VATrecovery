@@ -193,82 +193,83 @@ class OCREngine:
         return patterns
         
     def extract_info_from_text(self, text: str) -> Dict[str, Any]:
-        """
-        Extrait les informations pertinentes du texte reconnu avec validation améliorée
-        
-        Args:
-            text: Texte extrait de l'image
-            
-        Returns:
-            Dict: Dictionnaire des informations extraites
-        """
-        data = {}
-        patterns = self._compile_regex_patterns()
+    """
+    Extrait les informations pertinentes du texte OCR avec validation améliorée
 
-        # Nom de l'entreprise (lignes en majuscules au début)
-        for line in text.split("\n")[:8]:  # Examiner les 8 premières lignes
-            line = line.strip()
-            if line and len(line) > 3:
-                # Privilégier les lignes en majuscules mais prendre la première ligne significative sinon
-                if line.isupper():
-                    data["company_name"] = line
-                    break
-                elif "company_name" not in data and len(line) > 5:
-                    data["company_name"] = line
+    Args:
+        text: Texte brut extrait de l'OCR
 
-        # Identifiant fiscal (NIF/CIF/TVA)
-        for pattern in patterns["tax_id"]:
-            match = pattern.search(text)
-            if match:
-                data["tax_id"] = match.group(0).replace(' ', '')
+    Returns:
+        Dict: Dictionnaire des données extraites
+    """
+    data = {}
+    patterns = self._compile_regex_patterns()
+
+    # 🔍 Recherche du nom de l'entreprise : lignes majuscules ou significatives
+    for line in text.split("\n")[:8]:
+        line = line.strip()
+        if line and len(line) > 3:
+            if line.isupper():
+                data["company_name"] = line
                 break
+            elif "company_name" not in data and len(line) > 5:
+                data["company_name"] = line
 
-        # Date (formats courants)
-        for pattern in patterns["date_patterns"]:
+    # 🔍 Numéro d'identification fiscale (TVA, CIF, NIF…)
+    for pattern in patterns.get("tax_id", []):
+        match = pattern.search(text)
+        if match:
+            data["tax_id"] = match.group(0).replace(" ", "")
+            break
+
+    # 🔍 Date : recherche avec différents formats
+    for pattern in patterns.get("date_patterns", []):
+        match = pattern.search(text)
+        if not match:
+            continue
+        date_str = match.group(1)
+        formats = ["%d/%m/%y", "%d/%m/%Y", "%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d"]
+        for fmt in formats:
+            try:
+                parsed_date = datetime.strptime(date_str, fmt)
+                data["date"] = parsed_date.strftime("%Y-%m-%d")
+                break
+            except ValueError:
+                continue
+        if "date" in data:
+            break
+
+    # 🔍 Montants : TTC, HT, TVA, taux
+    amount_fields = {k: v for k, v in patterns.items() if k not in ["tax_id", "date_patterns"]}
+    for field, field_patterns in amount_fields.items():
+        for pattern in field_patterns:
             match = pattern.search(text)
             if match:
-                date_str = match.group(1)
                 try:
-                    # Conversion selon le format
-                    if '/' in date_str and len(date_str) == 8:  # DD/MM/YY
-                        date = datetime.strptime(date_str, "%d/%m/%y")
-                    elif '/' in date_str:  # DD/MM/YYYY
-                        date = datetime.strptime(date_str, "%d/%m/%Y")
-                    elif '.' in date_str:  # DD.MM.YYYY
-                        date = datetime.strptime(date_str, "%d.%m.%Y")
-                    elif '-' in date_str and len(date_str) == 10 and date_str[0:2].isdigit():  # DD-MM-YYYY
-                        date = datetime.strptime(date_str, "%d-%m-%Y")
-                    elif '-' in date_str:  # YYYY-MM-DD
-                        date = datetime.strptime(date_str, "%Y-%m-%d")
-                    
-                    data["date"] = date.strftime("%Y-%m-%d")
+                    value = match.group(1).replace(',', '.').strip()
+                    if field == "vat_rate":
+                        data[field] = int(float(value))
+                    else:
+                        data[field] = round(float(value), 2)
                     break
-                except ValueError:
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"⚠️ Erreur conversion champ {field}: {e}")
                     continue
 
-        # Extraction des montants (TTC, HT, TVA)
-        for field, field_patterns in {k: v for k, v in patterns.items() if k not in ["tax_id", "date_patterns"]}.items():
-            for pattern in field_patterns:
-                match = pattern.search(text)
-                if match:
-                    try:
-                        value = match.group(1).replace(',', '.').strip()
-                        if field == "vat_rate":
-                            data[field] = int(value)
-                        else:
-                            data[field] = round(float(value), 2)
-                        break
-                    except (ValueError, IndexError):
-                        continue
-
-        # Déduire des valeurs manquantes si possible
+    # 🔁 Déduction des valeurs manquantes (ex: HT = TTC - TVA)
+    try:
         self._calculate_missing_values(data)
+    except Exception as e:
+        logger.warning(f"⚠️ Erreur lors de la déduction des valeurs manquantes : {e}")
 
-        # Validation des données extraites
+    # ✅ Validation finale
+    try:
         self._validate_data(data)
-        
-        logger.info(f"✅ Données extraites: {data}")
-        return data
+    except Exception as e:
+        logger.warning(f"⚠️ Validation des données échouée : {e}")
+
+    logger.info(f"✅ Données extraites : {data}")
+    return data
         
     def _calculate_missing_values(self, data: Dict[str, Any]) -> None:
         """
