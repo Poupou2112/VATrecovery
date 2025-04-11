@@ -2,75 +2,80 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard – VATrecovery</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <title>Dashboard TVA</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #f9fafb;
-      padding: 2rem;
-      color: #111827;
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    th, td {
-      padding: 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    th {
-      background-color: #f3f4f6;
-      font-weight: 600;
-    }
-    tr:hover {
-      background-color: #f9fafb;
-    }
-    .tag {
-      padding: 0.2rem 0.6rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-    }
-    .yes { background-color: #d1fae5; color: #065f46; }
-    .no { background-color: #fee2e2; color: #991b1b; }
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
+    h1 { font-size: 2rem; }
+    .filters, .kpis, .charts, .exports { margin-bottom: 2rem; }
+    .kpi { background: white; border-radius: 12px; padding: 1rem; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; min-width: 150px; }
+    .charts canvas { max-width: 600px; margin: 2rem 0; }
   </style>
 </head>
 <body>
-  <h1>Bienvenue, {{ user }} 👋</h1>
-  <p>Voici la liste des reçus enregistrés :</p>
+  <h1>📊 Dashboard TVA</h1>
 
-  <table>
-    <thead>
-      <tr>
-        <th>📄 Fichier</th>
-        <th>🏢 Société</th>
-        <th>💰 Montant TTC</th>
-        <th>📅 Date</th>
-        <th>📤 Email</th>
-        <th>📥 Facture</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for receipt in receipts %}
-      <tr>
-        <td>{{ receipt.file }}</td>
-        <td>{{ receipt.company_name or "-" }}</td>
-        <td>{{ receipt.price_ttc or "-" }} €</td>
-        <td>{{ receipt.date or "-" }}</td>
-        <td><span class="tag {{ 'yes' if receipt.email_sent else 'no' }}">{{ "Oui" if receipt.email_sent else "Non" }}</span></td>
-        <td><span class="tag {{ 'yes' if receipt.invoice_received else 'no' }}">{{ "Oui" if receipt.invoice_received else "Non" }}</span></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="filters">
+    <form method="get" action="/dashboard">
+      <label for="client">Client:</label>
+      <input type="number" name="client_id" placeholder="ID client">
+      <label for="month">Mois:</label>
+      <input type="number" name="month" min="1" max="12">
+      <button type="submit">Filtrer</button>
+    </form>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <strong>Total TTC:</strong> {{ total_ttc }} €
+    </div>
+    <div class="kpi">
+      <strong>Total HT:</strong> {{ total_ht }} €
+    </div>
+    <div class="kpi">
+      <strong>Total TVA:</strong> {{ total_vat }} €
+    </div>
+    <div class="kpi">
+      <strong>Reçus:</strong> {{ receipt_count }}
+    </div>
+  </div>
+
+  <div class="charts">
+    <canvas id="barChart"></canvas>
+    <canvas id="pieChart"></canvas>
+  </div>
+
+  <div class="exports">
+    <a href="/export/csv"><button>Télécharger CSV</button></a>
+    <a href="/export/excel"><button>Télécharger Excel</button></a>
+  </div>
+
+  <script>
+    const barChart = new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: {{ months | safe }},
+        datasets: [{
+          label: 'Montant TTC mensuel',
+          data: {{ monthly_totals | safe }},
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    const pieChart = new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: {
+        labels: ['Facture reçue', 'En attente'],
+        datasets: [{
+          data: [{{ invoices_received }}, {{ pending_receipts }}],
+          backgroundColor: ['#4caf50', '#f44336']
+        }]
+      },
+      options: { responsive: true }
+    });
+  </script>
 </body>
 </html>
