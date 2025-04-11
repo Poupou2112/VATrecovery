@@ -365,3 +365,4 @@ class OCREngine:
             logger.info(f"✅ Reçu validé avec succès: {image_path}")
             
         return info
+        
