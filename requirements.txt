@@ -10,7 +10,6 @@ pytest-cov
 python-dotenv
 sqlalchemy
 apscheduler
-Dockerfile
 httpx
 werkzeug
 alembic
@@ -18,12 +17,7 @@ PyPDF2>=3.0.0
 loguru>=0.7.0
 psycopg2-binary
 pydantic[email]
-python-dotenv
-loguru
 email-validator
-redis
+redis>=4.0.0
 opencv-python
 pytesseract
-PyPDF2
-pydantic
-redis>=4.0.0
