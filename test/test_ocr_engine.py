@@ -17,7 +17,7 @@ def test_extract_info_from_text():
 
 def test_extract_info_minimal():
     engine = OCREngine()
-    text = "HT: 10 EUR
+    text = "HT: 10 EUR"
 TVA: 2 EUR
 TTC: 12 EUR"
     data = engine.extract_info_from_text(text)
