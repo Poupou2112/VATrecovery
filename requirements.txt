@@ -25,3 +25,4 @@ redis
 opencv-python
 pytesseract
 PyPDF2
+pydantic
