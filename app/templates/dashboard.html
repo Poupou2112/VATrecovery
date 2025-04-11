@@ -1,81 +1,38 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard TVA</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
-    h1 { font-size: 2rem; }
-    .filters, .kpis, .charts, .exports { margin-bottom: 2rem; }
-    .kpi { background: white; border-radius: 12px; padding: 1rem; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; min-width: 150px; }
-    .charts canvas { max-width: 600px; margin: 2rem 0; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Dashboard TVA</title>
 </head>
 <body>
-  <h1>📊 Dashboard TVA</h1>
+    <h1>Bienvenue {{ user.name }}</h1>
 
-  <div class="filters">
-    <form method="get" action="/dashboard">
-      <label for="client">Client:</label>
-      <input type="number" name="client_id" placeholder="ID client">
-      <label for="month">Mois:</label>
-      <input type="number" name="month" min="1" max="12">
-      <button type="submit">Filtrer</button>
-    </form>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi">
-      <strong>Total TTC:</strong> {{ total_ttc }} €
-    </div>
-    <div class="kpi">
-      <strong>Total HT:</strong> {{ total_ht }} €
-    </div>
-    <div class="kpi">
-      <strong>Total TVA:</strong> {{ total_vat }} €
-    </div>
-    <div class="kpi">
-      <strong>Reçus:</strong> {{ receipt_count }}
-    </div>
-  </div>
-
-  <div class="charts">
-    <canvas id="barChart"></canvas>
-    <canvas id="pieChart"></canvas>
-  </div>
-
-  <div class="exports">
-    <a href="/export/csv"><button>Télécharger CSV</button></a>
-    <a href="/export/excel"><button>Télécharger Excel</button></a>
-  </div>
-
-  <script>
-    const barChart = new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: {
-        labels: {{ months | safe }},
-        datasets: [{
-          label: 'Montant TTC mensuel',
-          data: {{ monthly_totals | safe }},
-          backgroundColor: 'rgba(54, 162, 235, 0.5)',
-          borderWidth: 1
-        }]
-      },
-      options: { responsive: true }
-    });
-
-    const pieChart = new Chart(document.getElementById('pieChart'), {
-      type: 'pie',
-      data: {
-        labels: ['Facture reçue', 'En attente'],
-        datasets: [{
-          data: [{{ invoices_received }}, {{ pending_receipts }}],
-          backgroundColor: ['#4caf50', '#f44336']
-        }]
-      },
-      options: { responsive: true }
-    });
-  </script>
+    {% if receipts %}
+        <h2>Reçus associés</h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Fournisseur</th>
+                    <th>Montant HT</th>
+                    <th>Montant TTC</th>
+                    <th>TVA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in receipts %}
+                    <tr>
+                        <td>{{ r.date }}</td>
+                        <td>{{ r.vendor }}</td>
+                        <td>{{ r.amount_ht }} €</td>
+                        <td>{{ r.amount_ttc }} €</td>
+                        <td>{{ r.amount_tva }} €</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Aucun reçu disponible pour le moment.</p>
+    {% endif %}
 </body>
 </html>
