@@ -49,4 +49,4 @@ def test_match_receipt():
     text = "Uber\n20/03/2025\nMontant TTC : 28,45 €"
     receipt = match_receipt(text, FakeSession())
     assert receipt is not None
-    assert receipt.id ==
+    assert receipt.id == 1
