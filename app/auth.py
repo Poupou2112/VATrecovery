@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from app.config import get_settings
 from app.models import User
-from app.schemas import Token, UserCreate, UserResponse
+from app.schemas import Token, UserCreate, UserOut
 from sqlalchemy.orm import Session
 from app.init_db import get_db
 import logging
