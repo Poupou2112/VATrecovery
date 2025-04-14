@@ -1,6 +1,12 @@
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, List
 from datetime import datetime
+from pydantic import BaseModel
+from pydantic import ConfigDict
+
+class MyModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    ...
 
 # Schémas d'authentification
 class Token(BaseModel):
@@ -94,5 +100,5 @@ class ReceiptResponse(ReceiptBase):
     status: str
     created_at: datetime
     
-    class Config:
-        orm_mode = True
+    class MyModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
