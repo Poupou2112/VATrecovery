@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from secrets import token_urlsafe
+from typing import Optional, List
 
 Base = declarative_base()
 
@@ -21,15 +22,23 @@ class User(Base):
     # Relations
     receipts = relationship("Receipt", back_populates="user")
 
-    def set_password(self, password: str):
+    def set_password(self, password: str) -> None:
+        """Set password hash from plain text password"""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        """Verify password against stored hash"""
         return check_password_hash(self.password_hash, password)
     
     @classmethod
-    def get_by_token(cls, session, token):
+    def get_by_token(cls, session, token: str) -> Optional["User"]:
+        """Get user by API token if active"""
         return session.query(cls).filter_by(api_token=token, is_active=True).first()
+    
+    def regenerate_token(self) -> str:
+        """Generate a new API token"""
+        self.api_token = token_urlsafe(32)
+        return self.api_token
 
 class Receipt(Base):
     __tablename__ = "receipts"
@@ -48,7 +57,7 @@ class Receipt(Base):
     invoice_received = Column(Boolean, default=False)
     ocr_text = Column(String, nullable=True)
     
-    # Clés étrangères
+    # Foreign keys
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     client_id = Column(String, nullable=False, index=True)
     
@@ -59,8 +68,8 @@ class Receipt(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     @classmethod
-    def get_pending_receipts(cls, session, days=5):
-        """Récupère les reçus en attente de facture depuis plus de X jours"""
+    def get_pending_receipts(cls, session, days: int = 5) -> List["Receipt"]:
+        """Get receipts waiting for invoice for more than X days"""
         cutoff = datetime.utcnow() - timedelta(days=days)
         return session.query(cls).filter(
             cls.invoice_received == False,
