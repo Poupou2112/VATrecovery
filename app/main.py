@@ -7,6 +7,7 @@ from app.auth import auth_router
 from app.dashboard import dashboard_router
 from app.reminder import reminder_router
 from app.config import settings
+from app.api import api_router
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 import aioredis
@@ -15,6 +16,8 @@ from loguru import logger
 setup_logger()
 
 app = FastAPI(title=settings.APP_NAME)
+
+app.include_router(api_router, prefix="/api")
 
 # CORS middleware (optionnel selon besoin)
 app.add_middleware(
