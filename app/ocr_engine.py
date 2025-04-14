@@ -64,6 +64,14 @@ class OCREngine:
     if not texts:
         return ""
     return texts[0].description
+    
+    def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        return pytesseract.image_to_string(image, lang="fra")
+    except Exception as e:
+        logger.error(f"❌ Tesseract OCR failed: {e}")
+        return ""
 
 class Receipt(Base):
     __tablename__ = "receipts"
