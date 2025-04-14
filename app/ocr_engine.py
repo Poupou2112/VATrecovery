@@ -71,19 +71,29 @@ class OCREngine:
     return texts[0].description
 
     def extract_fields_from_text(self, text: str) -> dict:
-        """
-        Utilise des regex pour extraire les champs pertinents du texte OCR.
-        """
-        data = {}
+    patterns = {
+        "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
+        "company": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
+        "vat_number": r"(?:TVA|VAT)[\s:]*([A-Z]{2}[0-9A-Z]{2,})",
+        "amount_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
+        "amount_ttc": r"(?:TTC|Montant TTC)[\s:]*([\d,.]+)[\s€EUR]*",
+        "amount_vat": r"(?:TVA)[\s:]*([\d,.]+)[\s€EUR]*",
+        "invoice_number": r"(?:Facture\s*No|Nº\s*Facture|Invoice\s*No\.?)\s*[:\-]?\s*([A-Z0-9\-\/]+)",
+        "postal_code": r"\b(\d{5})\b",
+        "city": r"\b(\d{5})\s+([A-Z][a-zéèêàîôç\s\-]+)",
+        "phone": r"(?:Tel|Téléphone)[\s:]*([\+0-9\-\s]{8,})",
+        "email": r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)",
+        "siret": r"\b(\d{14})\b",
+        "siren": r"\b(\d{9})\b"
+    }
 
-        # Exemple de regex
-        tva_match = re.search(r"(?:TVA|VAT)[ :\-]*([A-Z]{2}[0-9A-Z]{9,13})", text, re.IGNORECASE)
-        if tva_match:
-            data["tva"] = tva_match.group(1)
+    extracted = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            extracted[key] = match.group(1).strip()
 
-        # Ajoute les autres regex (date, montant, société...)
-
-        return data
+    return extracted
     
     def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
     """
