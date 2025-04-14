@@ -8,14 +8,27 @@ settings = get_settings()
 
 DATABASE_URL = settings.DATABASE_URL or "sqlite:///./test.db"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
 
-SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+SessionLocal = scoped_session(
+    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+)
 
 Base = declarative_base()
 
 def get_db_session():
-    """Dependency to get DB session."""
+    """Used for manual or scheduled access to the DB."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_db():
+    """Used in FastAPI dependencies."""
     db = SessionLocal()
     try:
         yield db
