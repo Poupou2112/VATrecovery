@@ -1,6 +1,8 @@
 from app.reminder import send_reminder
 from app.models import Receipt, User
 from datetime import datetime, timedelta
+from app.init_db import SessionLocal
+db = SessionLocal()
 
 def test_send_reminder_mock(monkeypatch):
     class FakeQuery:
@@ -30,5 +32,5 @@ def test_send_reminder_mock(monkeypatch):
     monkeypatch.setattr("app.reminder.SessionLocal", lambda: FakeSession())
     monkeypatch.setattr("app.reminder.send_email", lambda *args, **kwargs: True)
 
-    sent = send_reminder()
+    sent = send_reminder(db)
     assert sent == 1
