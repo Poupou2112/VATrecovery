@@ -6,6 +6,15 @@ from app.models import User
 from app.init_db import init_default_data
 from app.schemas import ReceiptOut
 
+def init_default_data():
+    db = SessionLocal()
+    if not db.query(User).first():
+        user = User(email="test@example.com", password_hash="hashed_password", client_id=1)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    db.close()
+
 @pytest.fixture(scope="session")
 def db():
     db = SessionLocal()
