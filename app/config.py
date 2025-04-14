@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = "your@email.com"
     SMTP_PASSWORD: str = "yourpassword"
+    SMTP_HOST: str = "smtp.example.com"
     EMAIL_FROM: str = "noreply@example.com"
 
     class Config:
