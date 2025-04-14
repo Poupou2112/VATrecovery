@@ -1,77 +1,51 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from typing import Optional
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 
 
-class UserBase(BaseModel):
-    email: EmailStr
-    full_name: str = Field(..., min_length=2, max_length=100)
-    is_active: bool = True
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=6)
-
-
-class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
-    is_active: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=6)
-
-
-class UserOut(UserBase):
-    id: int
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    user_id: Optional[int] = None
-
-
 class ReceiptBase(BaseModel):
-    file_name: str
-    extracted_text: Optional[str] = None
-    status: str
-
-    model_config = ConfigDict(from_attributes=True)
+    file: Optional[str] = None
+    email_sent_to: Optional[str] = None
+    date: Optional[str] = None
+    company_name: Optional[str] = None
+    vat_number: Optional[str] = None
+    price_ttc: Optional[float] = None
+    price_ht: Optional[float] = None
+    vat_amount: Optional[float] = None
+    vat_rate: Optional[float] = None
+    email_sent: Optional[bool] = False
+    invoice_received: Optional[bool] = False
+    ocr_text: Optional[str] = None
+    user_id: Optional[int] = None
+    client_id: Optional[int] = None
 
 
 class ReceiptCreate(ReceiptBase):
     pass
 
 
-class ReceiptUpdate(BaseModel):
-    extracted_text: Optional[str] = None
-    status: Optional[str] = None
-
-
 class ReceiptOut(ReceiptBase):
     id: int
     created_at: datetime
-    user_id: int
+    updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ReceiptRequest(BaseModel):
-    receipt_id: int
+    class Config:
+        orm_mode = True
 
 
-class ReceiptResponse(BaseModel):
+class User(BaseModel):
     id: int
-    file_name: str
-    extracted_text: Optional[str]
-    status: str
-    created_at: datetime
+    email: EmailStr
+    client_id: Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+class ReceiptUploadResponse(BaseModel):
+    message: str
+    receipt: ReceiptOut
