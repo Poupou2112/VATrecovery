@@ -1,21 +1,33 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.security import OAuth2PasswordBearer
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from datetime import timedelta
+
 from app import models, schemas
+from app.config import settings
 from app.database import get_db
-from app.security import verify_password, create_access_token
-from app.config import get_settings
-from app.dependencies import get_current_user
-from typing import List
-from slowapi import Limiter
+from app.logger_setup import setup_logger
+
+# Rate limiting avec slowapi
 from slowapi.util import get_remote_address
-from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
-from fastapi import Request
+from app.main import limiter  # Assure-toi que limiter est exporté dans main.py
+
+logger = logging.getLogger(__name__)
+setup_logger()
+
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -32,8 +44,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Configuration de l'authentification OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
-# Rate limiter pour prévenir les attaques par force brute
-throttler = Throttler(rate_limit=5, time_window=60)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Vérifie si le mot de passe en clair correspond au hash stocké."""
