@@ -1,22 +1,27 @@
 [tool.poetry]
 name = "vatrecovery"
 version = "0.1.0"
-description = "Application de récupération de TVA"
-authors = ["Votre Nom <votre.email@example.com>"]
+description = "Récupération de TVA sur notes de frais"
+authors = ["Ton Nom <ton.email@example.com>"]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 fastapi = "^0.78.0"
 uvicorn = "^0.17.6"
-pytesseract = "^0.3.8"
-Pillow = "^9.1.1"
-# Ajoutez d'autres dépendances nécessaires
+httpx = "^0.23.3"
+pydantic = "^1.10.21"
+sqlalchemy = "^1.4"
+pytesseract = "^0.3.13"
+pillow = "^9.5.0"
+apscheduler = "^3.10.4"
+loguru = "^0.7.2"
+email-validator = "^2.0.0.post2"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.2"
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
 pytest-cov = "^3.0.0"
-httpx = "^0.23.0"
-# Ajoutez d'autres dépendances de développement
+coverage = "^7.8.0"
 
 [build-system]
 requires = ["poetry-core"]
