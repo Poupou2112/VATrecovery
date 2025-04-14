@@ -16,7 +16,7 @@ from app.logger_setup import setup_logger
 # Rate limiting avec slowapi
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from app.main import limiter  # Assure-toi que limiter est exporté dans main.py
+from app.limiter import limiter  # Assure-toi que limiter est exporté dans main.py
 
 logger = logging.getLogger(__name__)
 setup_logger()
