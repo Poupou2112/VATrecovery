@@ -15,11 +15,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 jour
 
     # Email
-    SMTP_SERVER: str = "smtp.example.com"
-    SMTP_PORT: int = 587
+    SMTP_HOST: str = "smtp.example.com"
+    SMTP_PORT: int = 465
     SMTP_USERNAME: str = "your@email.com"
     SMTP_PASSWORD: str = "yourpassword"
-    SMTP_HOST: str = "smtp.example.com"
     EMAIL_FROM: str = "noreply@example.com"
 
     class Config:
