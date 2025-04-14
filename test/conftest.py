@@ -1,38 +1,35 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.main import app
-from app.database import SessionLocal
-from app.models import User
+from app.database import Base, get_db
 from app.init_db import init_default_data
-from app.schemas import ReceiptOut
 
-def init_default_data():
-    db = SessionLocal()
-    if not db.query(User).first():
-        user = User(email="test@example.com", password_hash="hashed_password", client_id=1)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    db.close()
+# Crée une base SQLite temporaire pour les tests
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
-@pytest.fixture(scope="session")
-def db():
-    db = SessionLocal()
-    yield db
-    db.close()
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Initialise la base avant tous les tests
+Base.metadata.create_all(bind=engine)
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Remplace la dépendance de FastAPI par la version de test
+app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(app)
-
-@pytest.fixture(scope="session")
-def test_user(db):
-    # Initialise les données de test si nécessaires
-    init_default_data()
-    user = db.query(User).first()
-    assert user is not None, "Aucun utilisateur disponible pour les tests"
-    return user
-
-@pytest.fixture(scope="session")
-def api_token(test_user):
-    return test_user.api_token
+    init_default_data()  # ← Assure-toi que la fonction insère bien des données cohérentes
+    with TestClient(app) as c:
+        yield c
