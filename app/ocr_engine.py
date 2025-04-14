@@ -45,17 +45,13 @@ class OCREngine:
         self.enable_google_vision = enable_google_vision
 
     def extract_info_from_image(self, image_bytes: bytes) -> dict:
-    if self.use_google_vision:
-        from google.cloud import vision
-        client = vision.ImageAnnotatorClient()
-        image = vision.Image(content=image_bytes)
-        response = client.text_detection(image=image)
-        text = response.full_text_annotation.text if response.text_annotations else ""
+    if self.enable_google_vision:
+        text = self.extract_text_with_google_vision(image_bytes)
     else:
         text = self.extract_text_with_tesseract(image_bytes)
     
     return self.extract_fields_from_text(text)
-
+    
     def extract_text_google_vision(self, image_bytes: bytes) -> str:
     from google.cloud import vision
     import io
