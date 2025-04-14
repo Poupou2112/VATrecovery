@@ -1,6 +1,7 @@
 from loguru import logger
 import os
 import sys
+import logging
 
 # Ensure logs directory exists
 logs_dir = "logs"
