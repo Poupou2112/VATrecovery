@@ -1,22 +1,25 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from app.config import get_settings
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
+from loguru import logger
 
-# Charger les paramètres depuis config.py
-settings = get_settings()
+# Récupération de l'URL de la base de données depuis les variables d'environnement
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
-# Créer le moteur SQLAlchemy
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {})
+# Création de l'engine SQLAlchemy
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+)
 
-# Créer une session locale
+# Création de la session locale
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base de données
+# Base de données de référence pour tous les modèles
 Base = declarative_base()
 
-# Dependency pour FastAPI
-def get_db():
+# Fonction pour obtenir une session de base de données
+def get_db_session():
     db = SessionLocal()
     try:
         yield db
