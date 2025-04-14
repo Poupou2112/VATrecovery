@@ -66,12 +66,24 @@ class OCREngine:
     return texts[0].description
     
     def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
+    """
+    Utilise Tesseract OCR pour extraire du texte depuis une image en français.
+    """
     try:
-        image = Image.open(BytesIO(image_bytes))
-        return pytesseract.image_to_string(image, lang="fra")
+        from PIL import Image
+        import io
+
+        image = Image.open(io.BytesIO(image_bytes))
+        logger.debug("🧪 Image ouverte avec PIL pour Tesseract")
+        text = pytesseract.image_to_string(image, lang="fra")
+        logger.debug(f"📝 Texte extrait avec Tesseract : {text[:100]}...")  # pour éviter d'afficher trop
+        return text
+
     except Exception as e:
+        import traceback
         logger.error(f"❌ Tesseract OCR failed: {e}")
         logger.debug(traceback.format_exc())
+        return ""
 
 class Receipt(Base):
     __tablename__ = "receipts"
