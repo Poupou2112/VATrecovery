@@ -7,16 +7,36 @@ __pycache__/
 # Environnements virtuels
 venv/
 .env
+.venv/
+env/
 
-# Secrets
+# Secrets et configuration
 credentials.json
+*credentials*.json
+*.pem
+*.key
+*.p12
+.env*
+!.env.example
 
 # IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Test coverage
 .coverage
 htmlcov/
 coverage.xml
-pytest_cache/
+.pytest_cache/
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+# Docker
+.docker/
+docker-volumes/
