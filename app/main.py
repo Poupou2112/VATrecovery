@@ -8,7 +8,7 @@ from app.dashboard import dashboard_router
 from app.reminder import reminder_router
 from app.config import settings
 from fastapi_limiter import FastAPILimiter
-import aioredis
+import redis.asyncio as redis
 from loguru import logger
 
 setup_logger()
