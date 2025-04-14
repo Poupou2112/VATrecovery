@@ -1,62 +1,51 @@
-import logging
-from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
-from app.init_db import SessionLocal
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
 from app.models import Receipt, User
 from app.email_sender import send_email
+from datetime import datetime, timedelta
 from loguru import logger
 
-def send_reminder(days_threshold: int = 5) -> Tuple[int, List[int]]:
-    """
-    Send reminder emails for receipts without invoices after a certain number of days.
-    
-    Args:
-        days_threshold: Number of days to wait before sending a reminder
-        
-    Returns:
-        Tuple containing count of sent emails and list of receipt IDs processed
-    """
-    session = SessionLocal()
-    now = datetime.utcnow()
-    limit = now - timedelta(days=days_threshold)
-    
-    try:
-        # Query receipts that need a reminder
-        receipts = session.query(Receipt).filter(
-            Receipt.invoice_received == False,
-            Receipt.email_sent == True,
-            Receipt.created_at < limit
-        ).all()
+reminder_router = APIRouter()
 
-        logger.info(f"Found {len(receipts)} receipts requiring reminders")
-        
-        sent_count = 0
-        processed_ids = []
-        
-        for receipt in receipts:
-            user = session.query(User).filter_by(client_id=receipt.client_id).first()
-            if not user:
-                logger.warning(f"No user found for client_id: {receipt.client_id}")
-                continue
-                
-            subject = "Invoice Request Reminder"
-            body = f"Hello, this is a reminder for the invoice related to the receipt dated {receipt.date} (Total: {receipt.price_ttc} €)."
-            
-            if send_email(to=receipt.email_sent_to, subject=subject, body=body):
-                sent_count += 1
-                processed_ids.append(receipt.id)
-                logger.debug(f"Reminder sent for receipt ID: {receipt.id}")
-            else:
-                logger.error(f"Failed to send reminder for receipt ID: {receipt.id}")
-        
-        return sent_count, processed_ids
-    
-    except Exception as e:
-        logger.error(f"Error in send_reminder: {e}")
-        raise
-    finally:
-        session.close()
+@reminder_router.get("/reminders/send")
+def send_reminder_endpoint(db: Session = Depends(get_db)) -> dict:
+    """
+    Envoie des relances pour les reçus sans facture après X jours.
+    """
+    logger.info("🔔 Lancement de l'envoi des relances")
+    days_threshold = 7
+    threshold_date = datetime.utcnow() - timedelta(days=days_threshold)
 
-if __name__ == "__main__":
-    count, ids = send_reminder()
-    logger.info(f"Reminder process complete. Sent {count} reminders for receipt IDs: {ids}")
+    receipts = db.query(Receipt).filter(
+        Receipt.email_sent == True,
+        Receipt.invoice_received == False,
+        Receipt.created_at < threshold_date
+    ).all()
+
+    logger.info(f"🔍 {len(receipts)} reçus en attente de facture dépassent le délai")
+
+    count = 0
+    for receipt in receipts:
+        user = db.query(User).filter(User.client_id == receipt.client_id).first()
+        if not user:
+            continue
+
+        send_email(
+            to=receipt.email_sent_to,
+            subject="Relance : merci de nous envoyer la facture",
+            body=f"""Bonjour,
+
+Pourriez-vous nous transmettre la facture liée au reçu envoyé le {receipt.date} ?
+
+Montant TTC : {receipt.price_ttc} €
+Fichier : {receipt.file}
+
+Merci d’avance,
+L’équipe Reclaimy
+"""
+        )
+        count += 1
+        logger.debug(f"✉️ Relance envoyée pour le reçu ID {receipt.id}")
+
+    return {"reminders_sent": count}
