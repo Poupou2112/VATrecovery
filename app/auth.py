@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from app.config import get_settings
-from app.models import User
-from app.schemas import Token, UserCreate, UserOut
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from app.init_db import get_db
-import logging
-import time
-from fastapi.throttling import Throttler
+from datetime import timedelta
+from app import models, schemas
+from app.database import get_db
+from app.security import verify_password, create_access_token
+from app.config import get_settings
+from app.dependencies import get_current_user
+from typing import List
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from fastapi import Request
+
+router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 # Configuration du logging
 logger = logging.getLogger(__name__)
