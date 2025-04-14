@@ -1,20 +1,22 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from app.models import Base
 import os
 from contextlib import contextmanager
 from loguru import logger
+from typing import Generator
 
-# Récupération de l'URL de la base depuis les variables d'environnement
-# Avec gestion des erreurs si non définie
+# Import Base directly from where it's defined
+from app.models import Base
+
+# Get database URL from environment variables with error handling
 try:
     DATABASE_URL = os.environ["DATABASE_URL"]
 except KeyError:
-    logger.warning("DATABASE_URL non définie. Utilisation de SQLite par défaut")
+    logger.warning("DATABASE_URL not defined. Using SQLite as default")
     DATABASE_URL = "sqlite:///./app.db"
 
-# Configuration de l'engine SQLAlchemy avec timeout et pool_size
+# Configure SQLAlchemy engine with timeout and pool settings
 engine_config = {}
 if "sqlite" in DATABASE_URL:
     engine_config["connect_args"] = {"check_same_thread": False}
@@ -22,38 +24,38 @@ else:
     engine_config["pool_size"] = 5
     engine_config["max_overflow"] = 10
     engine_config["pool_timeout"] = 30
-    engine_config["pool_recycle"] = 1800  # Reconnexion toutes les 30 min
+    engine_config["pool_recycle"] = 1800  # Reconnect every 30 minutes
 
-# Création de l'engine avec configuration
+# Create engine with configuration
 engine = create_engine(DATABASE_URL, **engine_config)
 
-# Session avec autoflush pour optimisation
+# Session with autoflush for optimization
 SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
-def init_db():
-    """Initialise la base de données en créant toutes les tables définies"""
+def init_db() -> None:
+    """Initialize the database by creating all defined tables"""
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Base de données initialisée avec succès")
+        logger.info("✅ Database initialized successfully")
     except Exception as e:
-        logger.error(f"❌ Erreur lors de l'initialisation de la base de données: {e}")
+        logger.error(f"❌ Error during database initialization: {e}")
         raise
 
-# Dépendance FastAPI pour obtenir une session DB avec gestion de contexte
 @contextmanager
 def get_db_session():
-    """Fournit une session DB avec gestion d'erreurs et fermeture automatique"""
+    """Provide a DB session with error handling and automatic closing"""
     db = SessionLocal()
     try:
         yield db
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ Erreur de transaction DB: {e}")
+        logger.error(f"❌ DB transaction error: {e}")
         raise
     finally:
         db.close()
 
-# Pour compatibilité avec FastAPI
-def get_db():
+# For FastAPI dependency injection
+def get_db() -> Generator:
+    """Get database session for FastAPI dependency injection"""
     with get_db_session() as db:
         yield db
