@@ -1,63 +1,93 @@
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 import os
-from contextlib import contextmanager
-from loguru import logger
 from typing import Generator
-from app.database import Base, engine
+from contextlib import contextmanager
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+from werkzeug.security import generate_password_hash
+from loguru import logger
+
+from app.models import Base, User  # ✅ Assurez-vous que Base est défini là
+# ⚠️ Ne pas faire: from app.database import Base  (évite les cycles)
 
 
-# Import Base directly from where it's defined
-from app.models import Base
-
-# Get database URL from environment variables with error handling
+# Obtenir la chaîne de connexion depuis les variables d’environnement
 try:
     DATABASE_URL = os.environ["DATABASE_URL"]
 except KeyError:
     logger.warning("DATABASE_URL not defined. Using SQLite as default")
     DATABASE_URL = "sqlite:///./app.db"
 
-# Configure SQLAlchemy engine with timeout and pool settings
+# Configurer les options SQLite ou autres backends
 engine_config = {}
-if "sqlite" in DATABASE_URL:
+if DATABASE_URL.startswith("sqlite"):
     engine_config["connect_args"] = {"check_same_thread": False}
 else:
     engine_config["pool_size"] = 5
     engine_config["max_overflow"] = 10
     engine_config["pool_timeout"] = 30
-    engine_config["pool_recycle"] = 1800  # Reconnect every 30 minutes
+    engine_config["pool_recycle"] = 1800  # reconnect every 30 min
 
-# Create engine with configuration
+# Créer le moteur SQLAlchemy
 engine = create_engine(DATABASE_URL, **engine_config)
 
-# Session with autoflush for optimization
+# Création du SessionLocal
 SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
+
 def init_database():
-    """Initialise toutes les tables dans la base de données."""
+    """Initialise toutes les tables de la base de données."""
     try:
-        logger.info("Creating database tables...")
+        logger.info("📦 Initialisation des tables...")
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database initialized successfully.")
+        logger.info("✅ Tables créées avec succès.")
     except Exception as e:
-        logger.error(f"❌ Failed to initialize database: {e}")
+        logger.error(f"❌ Échec de l'initialisation de la BDD : {e}")
+
+
+def init_default_data():
+    """Insère des données par défaut si non présentes."""
+    try:
+        db = SessionLocal()
+        existing_user = db.query(User).filter_by(email="admin@example.com").first()
+        if existing_user:
+            logger.debug("ℹ️ Utilisateur admin déjà présent.")
+            return
+
+        user = User(
+            email="admin@example.com",
+            hashed_password=generate_password_hash("admin123"),
+            is_active=True,
+            is_admin=True,
+            api_token="test_api_token_123"
+        )
+        db.add(user)
+        db.commit()
+        logger.info("✅ Utilisateur admin inséré avec succès.")
+    except Exception as e:
+        logger.error(f"❌ Erreur lors de l'insertion des données par défaut : {e}")
+    finally:
+        db.close()
+
 
 @contextmanager
 def get_db_session():
-    """Provide a DB session with error handling and automatic closing"""
+    """Contexte sécurisé pour une session DB."""
     db = SessionLocal()
     try:
         yield db
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ DB transaction error: {e}")
+        logger.error(f"❌ Erreur transactionnelle : {e}")
         raise
     finally:
         db.close()
 
-# For FastAPI dependency injection
+
+# Injection de dépendance FastAPI
 def get_db() -> Generator:
-    """Get database session for FastAPI dependency injection"""
+    """Injection de session DB dans FastAPI."""
     with get_db_session() as db:
         yield db
