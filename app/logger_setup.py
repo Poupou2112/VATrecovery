@@ -5,7 +5,10 @@ def setup_logger():
     class InterceptHandler(logging.Handler):
         def emit(self, record):
             # Adapté pour intercepter tous les logs standards et les renvoyer à Loguru
-            level = logger.level(record.levelname).name if record.levelname in logger._levels else "INFO"
+            try:
+                level = logger.level(record.levelname).name
+            except ValueError:
+            level = "INFO"
             logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
 
     logging.root.handlers = [InterceptHandler()]
