@@ -1,6 +1,6 @@
-from app.email_sender import send_email
 from email.message import EmailMessage
 import pytest
+from app.email_sender import send_email
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -22,4 +22,5 @@ def test_send_email_success(monkeypatch):
         subject="Hello",
         body="Test body"
     )
+
     assert result is True
