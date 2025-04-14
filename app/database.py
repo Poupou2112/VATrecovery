@@ -1,25 +1,21 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-import os
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, scoped_session
+from app.config import get_settings
 from loguru import logger
 
-# Récupération de l'URL de la base de données depuis les variables d'environnement
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+settings = get_settings()
 
-# Création de l'engine SQLAlchemy
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-)
+DATABASE_URL = settings.DATABASE_URL or "sqlite:///./test.db"
 
-# Création de la session locale
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
 
-# Base de données de référence pour tous les modèles
+SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+
 Base = declarative_base()
 
-# Fonction pour obtenir une session de base de données
 def get_db_session():
+    """Dependency to get DB session."""
     db = SessionLocal()
     try:
         yield db
