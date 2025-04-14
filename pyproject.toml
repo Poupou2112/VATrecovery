@@ -1,3 +1,23 @@
-[tool.pytest.ini_options]
-addopts = "--cov=app --cov-report=term-missing --cov-report=html"
-testpaths = ["test"]
+[tool.poetry]
+name = "vatrecovery"
+version = "0.1.0"
+description = "Application de récupération de TVA"
+authors = ["Votre Nom <votre.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.78.0"
+uvicorn = "^0.17.6"
+pytesseract = "^0.3.8"
+Pillow = "^9.1.1"
+# Ajoutez d'autres dépendances nécessaires
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
+httpx = "^0.23.0"
+# Ajoutez d'autres dépendances de développement
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
