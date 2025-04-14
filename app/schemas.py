@@ -1,34 +1,98 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field, validator
+from typing import Optional, List
 from datetime import datetime
 
-class ReceiptOut(BaseModel):
-    """Schema for receipt output data"""
+# Schémas d'authentification
+class Token(BaseModel):
+    """
+    Schéma pour le token JWT retourné lors de l'authentification.
+    """
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    """
+    Schéma pour les données contenues dans le token JWT.
+    """
+    username: Optional[str] = None
+
+# Schémas d'utilisateur
+class UserBase(BaseModel):
+    """
+    Schéma de base pour les utilisateurs.
+    """
+    email: EmailStr
+    full_name: str = Field(..., min_length=2, max_length=100)
+    company_name: Optional[str] = Field(None, max_length=100)
+
+class UserCreate(UserBase):
+    """
+    Schéma pour la création d'un utilisateur.
+    """
+    password: str = Field(..., min_length=8)
+    
+    @validator('password')
+    def password_strength(cls, v):
+        """
+        Vérifie que le mot de passe est suffisamment fort.
+        """
+        if len(v) < 8:
+            raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
+        if not any(char.isdigit() for char in v):
+            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
+        if not any(char.isupper() for char in v):
+            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
+        return v
+
+class UserResponse(UserBase):
+    """
+    Schéma pour la réponse contenant les données d'un utilisateur.
+    """
     id: int
-    file: str
-    company_name: Optional[str] = None
-    price_ttc: Optional[float] = None
-    date: Optional[str] = None
-    invoice_received: bool
-    email_sent: bool
-    created_at: datetime
-
+    
     class Config:
-        from_attributes = True  # for Pydantic v2+
-        json_schema_extra = {
-            "example": {
-                "id": 42,
-                "file": "uber_madrid_2024.jpg",
-                "company_name": "UBER SPAIN S.L.",
-                "price_ttc": 25.30,
-                "date": "2024-03-12",
-                "invoice_received": False,
-                "email_sent": True,
-                "created_at": "2024-03-12T08:00:00"
-            }
-        }
+        orm_mode = True
 
-class SendInvoiceRequest(BaseModel):
-    """Schema for invoice request payload"""
-    email: EmailStr = Field(..., example="contact@uber.com")
-    ticket_id: int = Field(..., example=42)
+class UserInDB(UserBase):
+    """
+    Schéma pour un utilisateur en base de données.
+    """
+    id: int
+    password_hash: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        orm_mode = True
+
+# Schémas de reçus
+class ReceiptBase(BaseModel):
+    """
+    Schéma de base pour les reçus.
+    """
+    merchant_name: Optional[str] = None
+    date: Optional[datetime] = None
+    total_amount: Optional[float] = None
+    vat_amount: Optional[float] = None
+    vat_rate: Optional[float] = None
+    receipt_number: Optional[str] = None
+    currency: Optional[str] = Field(None, max_length=3)
+
+class ReceiptRequest(BaseModel):
+    """
+    Schéma pour la demande de traitement d'un reçu.
+    """
+    ocr_text: str = Field(..., min_length=10)
+
+class ReceiptResponse(ReceiptBase):
+    """
+    Schéma pour la réponse contenant les données d'un reçu.
+    """
+    id: int
+    user_id: int
+    status: str
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
