@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     # Paramètres de rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     
-    @validator("DATABASE_URL")
+    @field_validator("DATABASE_URL")
+    @classmethod
     def validate_database_url(cls, v: str) -> str:
         """
         Valide l'URL de la base de données et convertit SQLite en PostgreSQL si nécessaire.
@@ -68,7 +69,8 @@ class Settings(BaseSettings):
             logger.error(f"Erreur de validation de DATABASE_URL: {str(e)}")
             raise
     
-    @validator("SECRET_KEY")
+    @field_validator("SECRET_KEY")
+    @classmethod
     def validate_secret_key(cls, v: SecretStr) -> SecretStr:
         """
         Vérifie que la clé secrète est suffisamment forte.
