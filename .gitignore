@@ -1,0 +1,18 @@
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environnements virtuels
+venv/
+.env
+
+# Fichiers sensibles
+credentials.json
+
+# Fichiers de logs
+*.log
+
+# Fichiers de test
+.coverage
+htmlcov/
