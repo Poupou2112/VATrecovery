@@ -3,17 +3,18 @@ from typing import Optional
 from datetime import datetime
 
 class ReceiptOut(BaseModel):
+    """Schema for receipt output data"""
     id: int
     file: str
-    company_name: Optional[str]
-    price_ttc: Optional[float]
-    date: Optional[str]
+    company_name: Optional[str] = None
+    price_ttc: Optional[float] = None
+    date: Optional[str] = None
     invoice_received: bool
     email_sent: bool
     created_at: datetime
 
     class Config:
-        from_attributes = True  # pour Pydantic v2+
+        from_attributes = True  # for Pydantic v2+
         json_schema_extra = {
             "example": {
                 "id": 42,
@@ -28,5 +29,6 @@ class ReceiptOut(BaseModel):
         }
 
 class SendInvoiceRequest(BaseModel):
+    """Schema for invoice request payload"""
     email: EmailStr = Field(..., example="contact@uber.com")
     ticket_id: int = Field(..., example=42)
