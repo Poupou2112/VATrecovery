@@ -40,6 +40,16 @@ class User(Base):
         self.api_token = token_urlsafe(32)
         return self.api_token
 
+class OCREngine:
+    def __init__(self):
+        from google.cloud import vision
+        self.client = vision.ImageAnnotatorClient()
+
+    def extract_text(self, image_content: bytes) -> str:
+        image = vision.Image(content=image_content)
+        response = self.client.text_detection(image=image)
+        return response.text_annotations[0].description if response.text_annotations else ""
+
 class Receipt(Base):
     __tablename__ = "receipts"
 
