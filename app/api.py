@@ -1,13 +1,22 @@
-from fastapi import APIRouter
+"""
+api.py - Regroupe les routes principales de l'API
+"""
 
-from app.auth import get_current_user  # si besoin de dépendance globale
-
-# Si tu as des sous-modules (ex: auth_routes, receipts, etc.)
-# from app.routes.auth_routes import router as auth_router
-# from app.routes.receipts import router as receipts_router
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+from app.schemas.receipt import ReceiptOut
+from app.models import Receipt
+from app.dependencies import get_current_user
+from app.init_db import get_db_session
+from sqlalchemy.orm import Session
 
 api_router = APIRouter()
 
-# Ajoute ici les sous-routers si existants
-# api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
-# api_router.include_router(receipts_router, prefix="/receipts", tags=["Receipts"])
+@api_router.get("/receipts", response_model=List[ReceiptOut])
+def list_receipts(current_user=Depends(get_current_user), db: Session = Depends(get_db_session)):
+    receipts = db.query(Receipt).filter_by(user_id=current_user.id).all()
+    return receipts
+
+@api_router.get("/ping")
+def health_check():
+    return {"message": "pong"}
