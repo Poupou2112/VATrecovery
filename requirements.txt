@@ -18,7 +18,7 @@ google-cloud-vision==3.4.5
 sqlalchemy==2.0.22
 psycopg2-binary==2.9.9
 alembic==1.12.1
-redis==5.0.1
+redis==3.5.3
 
 # Planification
 apscheduler==3.10.4
