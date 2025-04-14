@@ -1,18 +1,23 @@
 FROM python:3.9-slim
 
-# Définir le répertoire de travail
+# Installer les dépendances système nécessaires
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Créer le répertoire de travail
 WORKDIR /app
 
 # Copier les fichiers nécessaires
 COPY requirements.txt .
-COPY app/ app/
-COPY run.sh .
-
-# Installer les dépendances
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Donner les droits d'exécution au script
+# Copier tout le code
+COPY . .
+
+# Rendre le script exécutable
 RUN chmod +x run.sh
 
-# Définir le point d'entrée
-ENTRYPOINT ["./run.sh"]
+# Lancer l'app
+CMD ["./run.sh"]
