@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "super-secret-key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 jour
+    API_TEST_TOKEN: str = "testtoken"
 
     # Email
     SMTP_HOST: str = "smtp.example.com"
