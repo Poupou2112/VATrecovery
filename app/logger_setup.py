@@ -1,30 +1,18 @@
-from loguru import logger
-import os
-import sys
 import logging
+from loguru import logger
 
-# Ensure logs directory exists
-logs_dir = "logs"
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
+def setup_logger():
+    class InterceptHandler(logging.Handler):
+        def emit(self, record):
+            # Adapté pour intercepter tous les logs standards et les renvoyer à Loguru
+            level = logger.level(record.levelname).name if record.levelname in logger._levels else "INFO"
+            logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
 
-# Configure logger with rotation
-logger.remove()  # Remove default handler
-logger.add(
-    "logs/vatrecovery.log", 
-    rotation="1 week", 
-    retention="4 weeks", 
-    level="INFO",
-    backtrace=True,
-    diagnose=True,
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
-)
+    logging.root.handlers = [InterceptHandler()]
+    logging.root.setLevel(logging.INFO)
 
-# Also log to stderr for console output with lower verbosity
-logger.add(
-    sys.stderr,
-    level="INFO",
-    format="{time:HH:mm:ss} | <level>{level: <8}</level> | {message}"
-)
+    # Désactive les logs de uvicorn si besoin
+    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
 
-logger.info("Logger initialized")
+    logger.info("Logger initialized")
