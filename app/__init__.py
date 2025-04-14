@@ -1,73 +1,41 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from contextlib import asynccontextmanager
+
 from app.api import api_router
 from app.auth import auth_router
-from app.models import Base
-from app.config import get_settings
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import logging
-from contextlib import contextmanager
+from app.scheduler import scheduler_router
+from app.reminder import reminder_router
+from app.dashboard import dashboard_router
+from app.logger_setup import setup_logger
+from app.init_db import init_database
 
-# Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
-# Récupération des paramètres
-settings = get_settings()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("🔁 App startup: Initializing DB and scheduler...")
+    init_database()
+    yield
+    logger.info("🔁 App shutdown: Done.")
 
-# Configuration de la base de données
-engine = create_engine(
-    str(settings.DATABASE_URL), 
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def init_db():
-    """Initialise la structure de la base de données."""
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("✅ Base de données initialisée avec succès.")
-    except Exception as e:
-        logger.error(f"❌ Erreur lors de l'initialisation de la base de données: {str(e)}")
-        raise
-
-def get_db():
-    """Fournit une session de base de données pour les dépendances FastAPI."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Création de l'application FastAPI
 app = FastAPI(
-    title=settings.APP_NAME,
-    description="API pour la récupération de TVA à partir de reçus",
+    title="VAT Recovery App",
+    description="API for automating VAT recovery from receipts.",
     version="1.0.0",
-    debug=settings.DEBUG
+    lifespan=lifespan,
 )
 
-# Ajout des routers
-app.include_router(auth_router)
-app.include_router(api_router)
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    if logger:
+        logger.info(f"{request.method} {request.url}")
+    response = await call_next(request)
+    return response
 
-@app.on_event("startup")
-async def startup_event():
-    """Actions à exécuter au démarrage de l'application."""
-    logger.info("🚀 Démarrage de l'application...")
-    init_db()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Actions à exécuter à l'arrêt de l'application."""
-    logger.info("🛑 Arrêt de l'application...")
-
-@app.get("/health")
-async def health_check():
-    """Point de terminaison pour vérifier l'état de l'application."""
-    return {"status": "ok"}
+# Mount all route modules
+app.include_router(api_router, prefix="/api")
+app.include_router(auth_router, prefix="/auth")
+app.include_router(scheduler_router, prefix="/scheduler")
+app.include_router(reminder_router, prefix="/reminder")
+app.include_router(dashboard_router, prefix="")
