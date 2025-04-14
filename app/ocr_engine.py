@@ -4,6 +4,10 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from secrets import token_urlsafe
 from typing import Optional, List
+import re
+from PIL import Image
+import pytesseract
+from io import BytesIO
 
 Base = declarative_base()
 
@@ -45,71 +49,52 @@ class OCREngine:
         self.enable_google_vision = enable_google_vision
 
     def extract_info_from_image(self, image_bytes: bytes) -> dict:
-    if self.enable_google_vision:
-        text = self.extract_text_with_google_vision(image_bytes)
-    else:
-        text = self.extract_text_with_tesseract(image_bytes)
-    
-    return self.extract_fields_from_text(text)
-    
+        if self.enable_google_vision:
+            from google.cloud import vision
+            client = vision.ImageAnnotatorClient()
+            image = vision.Image(content=image_bytes)
+            response = client.text_detection(image=image)
+            text = response.full_text_annotation.text if response.text_annotations else ""
+        else:
+            text = self.extract_text_with_tesseract(image_bytes)
+        return self.extract_fields_from_text(text)
+
+    def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
+        image = Image.open(BytesIO(image_bytes))
+        return pytesseract.image_to_string(image, lang="fra")
+
     def extract_text_google_vision(self, image_bytes: bytes) -> str:
-    from google.cloud import vision
-    import io
-
-    client = vision.ImageAnnotatorClient()
-    image = vision.Image(content=image_bytes)
-
-    response = client.text_detection(image=image)
-    texts = response.text_annotations
-
-    if not texts:
-        return ""
-    return texts[0].description
+        from google.cloud import vision
+        client = vision.ImageAnnotatorClient()
+        image = vision.Image(content=image_bytes)
+        response = client.text_detection(image=image)
+        texts = response.text_annotations
+        return texts[0].description if texts else ""
 
     def extract_fields_from_text(self, text: str) -> dict:
-    patterns = {
-        "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
-        "company": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
-        "vat_number": r"(?:TVA|VAT)[\s:]*([A-Z]{2}[0-9A-Z]{2,})",
-        "amount_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
-        "amount_ttc": r"(?:TTC|Montant TTC)[\s:]*([\d,.]+)[\s€EUR]*",
-        "amount_vat": r"(?:TVA)[\s:]*([\d,.]+)[\s€EUR]*",
-        "invoice_number": r"(?:Facture\s*No|Nº\s*Facture|Invoice\s*No\.?)\s*[:\-]?\s*([A-Z0-9\-\/]+)",
-        "postal_code": r"\b(\d{5})\b",
-        "city": r"\b(\d{5})\s+([A-Z][a-zéèêàîôç\s\-]+)",
-        "phone": r"(?:Tel|Téléphone)[\s:]*([\+0-9\-\s]{8,})",
-        "email": r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)",
-        "siret": r"\b(\d{14})\b",
-        "siren": r"\b(\d{9})\b"
-    }
+        patterns = {
+            "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
+            "company": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
+            "vat_number": r"(?:TVA|VAT)[\s:]*([A-Z]{2}[0-9A-Z]{2,})",
+            "amount_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
+            "amount_ttc": r"(?:TTC|Montant TTC)[\s:]*([\d,.]+)[\s€EUR]*",
+            "amount_vat": r"(?:TVA)[\s:]*([\d,.]+)[\s€EUR]*",
+            "invoice_number": r"(?:Facture\s*No|Nº\s*Facture|Invoice\s*No\.?)\s*[:\-]?\s*([A-Z0-9\-\/]+)",
+            "postal_code": r"\b(\d{5})\b",
+            "city": r"\b(\d{5})\s+([A-Z][a-zéèêàîôç\s\-]+)",
+            "phone": r"(?:Tel|Téléphone)[\s:]*([\+0-9\-\s]{8,})",
+            "email": r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)",
+            "siret": r"\b(\d{14})\b",
+            "siren": r"\b(\d{9})\b"
+        }
 
-    extracted = {}
-    for key, pattern in patterns.items():
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            extracted[key] = match.group(1).strip()
+        extracted = {}
+        for key, pattern in patterns.items():
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                extracted[key] = match.group(1).strip()
 
-    return extracted
-    
-    def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
-    """
-    Utilise Tesseract OCR pour extraire du texte depuis une image en français.
-    """
-    try:
-        from PIL import Image
-        import io
-
-        image = Image.open(io.BytesIO(image_bytes))
-        logger.debug("🧪 Image ouverte avec PIL pour Tesseract")
-        text = pytesseract.image_to_string(image, lang="fra")
-        logger.debug(f"📝 Texte extrait avec Tesseract : {text[:100]}...")  # pour éviter d'afficher trop
-        return text
-
-    except Exception as e:
-        import traceback
-        logger.error(f"❌ Tesseract OCR failed: {e}")
-        logger.debug(traceback.format_exc())
-        return ""
+        return extracted
 
 class Receipt(Base):
     __tablename__ = "receipts"
