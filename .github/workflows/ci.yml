@@ -1,86 +1,37 @@
-name: CI - VATrecovery
+name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
   pull_request:
-    branches: ["main"]
+    branches: [ main ]
 
 jobs:
   test:
-    name: 🔍 Tests + Lint
     runs-on: ubuntu-latest
 
-    services:
-      db:
-        image: postgres:15
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
-      SMTP_FROM: fake@mail.com
-      SMTP_USER: fake
-      SMTP_PASS: fake
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 465
-      IMAP_EMAIL: fake
-      IMAP_PASSWORD: fake
-      IMAP_SERVER: imap.example.com
-      IMAP_PORT: 993
-      DASHBOARD_USER: admin
-      DASHBOARD_PASS: admin
-      DASHBOARD_CLIENT_ID: reclaimy
-      SESSION_SECRET: dummy
-
     steps:
-      - name: 🧬 Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: 🧪 Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install black pytest alembic pytest-cov
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
 
-      - name: 🔧 Fix PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/app" >> $GITHUB_ENV
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/app" >> $GITHUB_ENV
 
-      - name: 🛠️ Run Alembic migrations
-        run: alembic upgrade head
+    - name: Run tests with coverage
+      run: pytest --cov=app --cov-report=term-missing --cov-report=xml
 
-      - name: ✅ Run tests with coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-report=xml
-
-      - name: 📤 Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: true
-
-      - name: 🎨 Auto-format code with Black
-        run: black .
-
-      - name: 📦 Commit & push formatted code
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add .
-          git commit -m "style: auto-format with black" || echo "No changes to commit"
-          git push origin main || echo "No changes to push"
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
