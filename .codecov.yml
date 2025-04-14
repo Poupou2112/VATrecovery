@@ -1,5 +1,6 @@
 codecov:
-  token: f2c2215f-7200-4e3d-999c-f9fe0f6e4c8f  # Ton token privé pour repo privé
+  # Ne pas inclure le token dans les fichiers source
+  # Utilisez les variables d'environnement CI à la place
 
 coverage:
   precision: 2
