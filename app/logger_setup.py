@@ -8,7 +8,7 @@ def setup_logger():
             try:
                 level = logger.level(record.levelname).name
             except ValueError:
-            level = "INFO"
+                level = "INFO"
             logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
 
     logging.root.handlers = [InterceptHandler()]
