@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Va dans le dossier du script (donc racine du projet)
-cd "$(dirname "$0")"
+# Activer l'environnement virtuel si nécessaire
+# source venv/bin/activate
 
-# Active l'environnement virtuel
-source venv/bin/activate
-
-# Lancement du script principal
-echo "🚀 Lancement de Reclaimy..."
-python3 -m app.main
+# Lancer l'application
+uvicorn app.main:app --host 0.0.0.0 --port 8000
