@@ -7,5 +7,6 @@ services:
       - "8000:8000"
     environment:
       - ENV=production
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/credentials.json
     volumes:
       - .:/app
