@@ -41,12 +41,12 @@ class User(Base):
         return self.api_token
 
 class OCREngine:
-    def __init__(self, use_google_vision: bool = True):
-        self.use_google_vision = use_google_vision
+    def __init__(self, enable_google_vision: bool = True):
+        self.enable_google_vision = enable_google_vision
 
     def extract_info_from_image(self, image_bytes: bytes) -> dict:
         # 1. Extraction de texte
-        if self.use_google_vision:
+        if self.enable_google_vision:
             text = self.extract_text_google_vision(image_bytes)
         else:
             text = extract_text_with_tesseract(image_bytes)
@@ -71,7 +71,7 @@ class OCREngine:
         return pytesseract.image_to_string(image, lang="fra")
     except Exception as e:
         logger.error(f"❌ Tesseract OCR failed: {e}")
-        return ""
+        logger.debug(traceback.format_exc())
 
 class Receipt(Base):
     __tablename__ = "receipts"
