@@ -1,39 +1,46 @@
-"""
-email_sender.py - Service d'envoi d'e-mails via SMTP
-"""
-
 import smtplib
 from email.message import EmailMessage
-from app.config import settings
+from app.config import get_settings
 from app.logger_setup import logger
+
+settings = get_settings()
 
 class EmailService:
     def __init__(self):
         self.smtp_host = settings.SMTP_HOST
         self.smtp_port = settings.SMTP_PORT
-        self.smtp_username = settings.SMTP_USERNAME
-        self.smtp_password = settings.SMTP_PASSWORD
-        self.email_from = settings.EMAIL_FROM
+        self.username = settings.SMTP_USERNAME
+        self.password = settings.SMTP_PASSWORD
+        self.sender = settings.EMAIL_FROM
 
-    def send(self, to: str, subject: str, body: str) -> bool:
+    def send(self, to: str, subject: str, body: str, attachments: list = None):
+        if not to or not subject or not body:
+            logger.warning("🚫 Missing required email fields")
+            return False
+
         msg = EmailMessage()
-        msg["From"] = self.email_from
-        msg["To"] = to
         msg["Subject"] = subject
+        msg["From"] = self.sender
+        msg["To"] = to
         msg.set_content(body)
 
+        if attachments:
+            for filename, content, mime_type in attachments:
+                maintype, subtype = mime_type.split("/")
+                msg.add_attachment(content, maintype=maintype, subtype=subtype, filename=filename)
+
         try:
-            with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as server:
-                server.login(self.smtp_username, self.smtp_password)
-                server.send_message(msg)
-                logger.info(f"📧 Email sent to {to} with subject '{subject}'")
+            with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) as smtp:
+                smtp.login(self.username, self.password)
+                smtp.send_message(msg)
+            logger.info(f"📧 Email sent to {to} - {subject}")
             return True
         except Exception as e:
-            logger.error(f"❌ Failed to send email to {to}: {e}")
+            logger.exception(f"❌ Failed to send email to {to}: {e}")
             return False
 
 
-# Fonction helper pour usage direct
-def send_email(to: str, subject: str, body: str) -> bool:
-    service = EmailService()
-    return service.send(to, subject, body)
+def send_email(to: str, subject: str, body: str, attachments: list = None, service: EmailService = None) -> bool:
+    if service is None:
+        service = EmailService()
+    return service.send(to, subject, body, attachments)
