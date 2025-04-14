@@ -1,4 +1,5 @@
-from pydantic import BaseSettings, PostgresDsn, SecretStr, EmailStr, validator
+from pydantic_settings import BaseSettings
+from pydantic import PostgresDsn, SecretStr, EmailStr
 from typing import Optional, Dict, Any
 import os
 from functools import lru_cache
