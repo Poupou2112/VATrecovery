@@ -1,104 +1,77 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
-from pydantic import ConfigDict
 
 
-class MyModel(BaseModel):
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=2, max_length=100)
+    is_active: bool = True
+
     model_config = ConfigDict(from_attributes=True)
-    ...
 
-# Schémas d'authentification
+
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=6)
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    is_active: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=6)
+
+
+class UserOut(UserBase):
+    id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class Token(BaseModel):
-    """
-    Schéma pour le token JWT retourné lors de l'authentification.
-    """
     access_token: str
     token_type: str
 
+
 class TokenData(BaseModel):
-    """
-    Schéma pour les données contenues dans le token JWT.
-    """
-    username: Optional[str] = None
+    user_id: Optional[int] = None
 
-# Schémas d'utilisateur
-class UserBase(BaseModel):
-    """
-    Schéma de base pour les utilisateurs.
-    """
-    email: EmailStr
-    full_name: str = Field(..., min_length=2, max_length=100)
-    company_name: Optional[str] = Field(None, max_length=100)
 
-class UserCreate(UserBase):
-    """
-    Schéma pour la création d'un utilisateur.
-    """
-    password: str = Field(..., min_length=8)
-    
-    @validator('password')
-    def password_strength(cls, v):
-        """
-        Vérifie que le mot de passe est suffisamment fort.
-        """
-        if len(v) < 8:
-            raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
-        if not any(char.isdigit() for char in v):
-            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
-        if not any(char.isupper() for char in v):
-            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
-        return v
-
-class UserResponse(UserBase):
-    """
-    Schéma pour la réponse contenant les données d'un utilisateur.
-    """
-    id: int
-    
-    class Config:
-        orm_mode = True
-
-class UserInDB(UserBase):
-    """
-    Schéma pour un utilisateur en base de données.
-    """
-    id: int
-    password_hash: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        orm_mode = True
-
-# Schémas de reçus
 class ReceiptBase(BaseModel):
-    """
-    Schéma de base pour les reçus.
-    """
-    merchant_name: Optional[str] = None
-    date: Optional[datetime] = None
-    total_amount: Optional[float] = None
-    vat_amount: Optional[float] = None
-    vat_rate: Optional[float] = None
-    receipt_number: Optional[str] = None
-    currency: Optional[str] = Field(None, max_length=3)
+    file_name: str
+    extracted_text: Optional[str] = None
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReceiptCreate(ReceiptBase):
+    pass
+
+
+class ReceiptUpdate(BaseModel):
+    extracted_text: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ReceiptOut(ReceiptBase):
+    id: int
+    created_at: datetime
+    user_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ReceiptRequest(BaseModel):
-    """
-    Schéma pour la demande de traitement d'un reçu.
-    """
-    ocr_text: str = Field(..., min_length=10)
+    receipt_id: int
 
-class ReceiptResponse(ReceiptBase):
-    """
-    Schéma pour la réponse contenant les données d'un reçu.
-    """
+
+class ReceiptResponse(BaseModel):
     id: int
-    user_id: int
+    file_name: str
+    extracted_text: Optional[str]
     status: str
     created_at: datetime
-    
-class MyModel(BaseModel):
+
     model_config = ConfigDict(from_attributes=True)
