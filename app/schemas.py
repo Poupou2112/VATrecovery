@@ -1,8 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel
-from pydantic import ConfigDict
 
 class MyModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -100,5 +98,5 @@ class ReceiptResponse(ReceiptBase):
     status: str
     created_at: datetime
     
-    class MyModel(BaseModel):
+class MyModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
