@@ -3,66 +3,51 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.logger_setup import setup_logger
-from app.api import api_router
 from app.auth import auth_router
 from app.dashboard import dashboard_router
 from app.reminder import reminder_router
-from app.email_sender import email_router
-from app.scheduler import start_scheduler
-from app.database import init_db
-import logging
+from app.config import settings
+from fastapi_limiter import FastAPILimiter
+import aioredis
+from loguru import logger
 
-# ✅ Initialiser le logger
-logger = setup_logger()
+setup_logger()
 
-# ✅ Fallback logger (utile pour les tests si logger est None)
-if logger is None:
-    logger = logging.getLogger("uvicorn")
-    logger.setLevel(logging.INFO)
+app = FastAPI(title=settings.APP_NAME)
 
-app = FastAPI(
-    title="VATrecovery",
-    description="OCR-powered VAT Recovery Automation",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# ✅ Middleware pour logger les requêtes
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info(f"{request.method} {request.url}")
-    response = await call_next(request)
-    return response
-
-# ✅ CORS config (optionnel, à adapter selon ton frontend)
+# CORS middleware (optionnel selon besoin)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # à restreindre en prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Routing
-app.include_router(api_router, prefix="/api")
-app.include_router(auth_router, prefix="/auth")
-app.include_router(dashboard_router, prefix="/dashboard")
-app.include_router(reminder_router, prefix="/reminders")
-app.include_router(email_router, prefix="/email")
+# Middleware de log
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"{request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to VATrecovery"}
-
-# ✅ Startup tasks
+# Init Redis + Rate Limiter
 @app.on_event("startup")
-async def startup_event():
-    logger.info("🚀 Starting VATrecovery app...")
-    init_db()
-    start_scheduler()
+async def startup():
+    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(redis)
 
-# ✅ Shutdown
+# Shutdown propre
 @app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("🛑 Shutting down VATrecovery app.")
+async def shutdown():
+    logger.info("Shutting down...")
+
+# Routes
+@app.get("/")
+async def root():
+    return {"message": "Welcome to VATrecovery API!"}
+
+app.include_router(auth_router)
+app.include_router(dashboard_router)
+app.include_router(reminder_router)
