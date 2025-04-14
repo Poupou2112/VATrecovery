@@ -35,6 +35,7 @@ werkzeug==3.0.1
 # Sécurité
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 
 # OCR et images
 opencv-python-headless==4.8.1.78
