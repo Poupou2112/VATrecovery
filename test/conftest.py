@@ -4,6 +4,7 @@ from app.main import app
 from app.database import SessionLocal
 from app.models import User
 from app.init_db import init_default_data
+from app.schemas import ReceiptOut
 
 @pytest.fixture(scope="session")
 def db():
