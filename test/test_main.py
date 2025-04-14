@@ -4,10 +4,20 @@ from app.main import app
 
 client = TestClient(app)
 
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200, "Root route should return 200"
-    assert "VATrecovery est en ligne" in response.text
+def test_root(test_client):
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert "message" in response.json()
+
+def test_docs_ui(test_client):
+    response = test_client.get("/docs")
+    assert response.status_code == 200
+    assert "Swagger UI" in response.text or "swagger" in response.text.lower()
+
+def test_redoc_ui(test_client):
+    response = test_client.get("/redoc")
+    assert response.status_code == 200
+    assert "ReDoc" in response.text or "redoc" in response.text.lower()
 
 def test_dashboard_auth_fail():
     response = client.get("/dashboard")
