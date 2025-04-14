@@ -45,15 +45,15 @@ class OCREngine:
         self.enable_google_vision = enable_google_vision
 
     def extract_info_from_image(self, image_bytes: bytes) -> dict:
-    """
-    Analyse l'image pour extraire les informations clés : TVA, société, montant, etc.
-    """
-    from google.cloud import vision
-    client = vision.ImageAnnotatorClient()
-    image = vision.Image(content=image_bytes)
-    response = client.text_detection(image=image)
-    text = response.full_text_annotation.text if response.text_annotations else ""
-
+    if self.use_google_vision:
+        from google.cloud import vision
+        client = vision.ImageAnnotatorClient()
+        image = vision.Image(content=image_bytes)
+        response = client.text_detection(image=image)
+        text = response.full_text_annotation.text if response.text_annotations else ""
+    else:
+        text = self.extract_text_with_tesseract(image_bytes)
+    
     return self.extract_fields_from_text(text)
 
     def extract_text_google_vision(self, image_bytes: bytes) -> str:
@@ -69,6 +69,21 @@ class OCREngine:
     if not texts:
         return ""
     return texts[0].description
+
+    def extract_fields_from_text(self, text: str) -> dict:
+        """
+        Utilise des regex pour extraire les champs pertinents du texte OCR.
+        """
+        data = {}
+
+        # Exemple de regex
+        tva_match = re.search(r"(?:TVA|VAT)[ :\-]*([A-Z]{2}[0-9A-Z]{9,13})", text, re.IGNORECASE)
+        if tva_match:
+            data["tva"] = tva_match.group(1)
+
+        # Ajoute les autres regex (date, montant, société...)
+
+        return data
     
     def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
     """
