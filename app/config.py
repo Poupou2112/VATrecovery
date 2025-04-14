@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 jour
     API_TEST_TOKEN: str = "testtoken"
+    IMAP_USER: str = "testuser@example.com" 
     IMAP_SERVER: str = "imap.test.com"
 
     # Email
