@@ -5,6 +5,8 @@ import os
 from contextlib import contextmanager
 from loguru import logger
 from typing import Generator
+from app.database import Base, engine
+
 
 # Import Base directly from where it's defined
 from app.models import Base
@@ -32,14 +34,14 @@ engine = create_engine(DATABASE_URL, **engine_config)
 # Session with autoflush for optimization
 SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
-def init_db() -> None:
-    """Initialize the database by creating all defined tables"""
+def init_database():
+    """Initialise toutes les tables dans la base de données."""
     try:
+        logger.info("Creating database tables...")
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database initialized successfully")
+        logger.info("✅ Database initialized successfully.")
     except Exception as e:
-        logger.error(f"❌ Error during database initialization: {e}")
-        raise
+        logger.error(f"❌ Failed to initialize database: {e}")
 
 @contextmanager
 def get_db_session():
