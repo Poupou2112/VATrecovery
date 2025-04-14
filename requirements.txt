@@ -1,27 +1,45 @@
-fastapi
-uvicorn
-requests
-python-multipart
-jinja2
-boto3
-google-cloud-vision
-pytest
-pytest-cov
-python-dotenv
-sqlalchemy
-apscheduler
-httpx
-werkzeug
-alembic
-PyPDF2>=3.0.0
-loguru>=0.7.0
-psycopg2-binary
-pydantic[email]
-email-validator
-redis>=4.0.0
-opencv-python
-pytesseract
-pillow
-opencv-python-headless
-python-jose
-passlib[bcrypt]
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.23.2
+
+# HTTP et API
+requests==2.31.0
+python-multipart==0.0.6
+httpx==0.25.0
+
+# Templates
+jinja2==3.1.2
+
+# Cloud et Services
+boto3==1.28.64
+google-cloud-vision==3.4.5
+
+# Database
+sqlalchemy==2.0.22
+psycopg2-binary==2.9.9
+alembic==1.12.1
+redis==5.0.1
+
+# Planification
+apscheduler==3.10.4
+
+# Utils
+PyPDF2==3.0.1
+loguru==0.7.2
+pydantic[email]==2.4.2
+email-validator==2.1.0.post1
+python-dotenv==1.0.0
+werkzeug==3.0.1
+
+# Sécurité
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# OCR et images
+opencv-python-headless==4.8.1.78
+pytesseract==0.3.10
+pillow==10.1.0
+
+# Tests
+pytest==7.4.3
+pytest-cov==4.1.0
