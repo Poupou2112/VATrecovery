@@ -74,11 +74,11 @@ class OCREngine:
     def extract_fields_from_text(self, text: str) -> dict:
         patterns = {
             "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
-            "company": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
+            "company_name": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
             "vat_number": r"(?:TVA|VAT)[\s:]*([A-Z]{2}[0-9A-Z]{2,})",
-            "amount_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
-            "amount_ttc": r"(?:TTC|Montant TTC)[\s:]*([\d,.]+)[\s€EUR]*",
-            "amount_vat": r"(?:TVA)[\s:]*([\d,.]+)[\s€EUR]*",
+            "price_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
+            "price_ttc": r"(?:TTC|Montant TTC|Total TTC)[\s:]*([\d,.]+)[\s€EUR]*",
+            "vat_amount": r"(?:TVA)[\s:]*([\d,.]+)[\s€EUR]*",
             "invoice_number": r"(?:Facture\s*No|Nº\s*Facture|Invoice\s*No\.?)\s*[:\-]?\s*([A-Z0-9\-\/]+)",
             "postal_code": r"\b(\d{5})\b",
             "city": r"\b(\d{5})\s+([A-Z][a-zéèêàîôç\s\-]+)",
@@ -86,7 +86,7 @@ class OCREngine:
             "email": r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)",
             "siret": r"\b(\d{14})\b",
             "siren": r"\b(\d{9})\b"
-        }
+}
 
         extracted = {}
         for key, pattern in patterns.items():
