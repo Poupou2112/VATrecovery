@@ -1,5 +1,4 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from app.schemas import ReceiptOut
 from typing import Optional
 from datetime import datetime
 
