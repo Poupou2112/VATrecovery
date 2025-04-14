@@ -3,7 +3,7 @@ from app.ocr_engine import OCREngine
 
 @pytest.fixture
 def engine():
-    return OCREngine(use_google_vision=False)  # Simule l'usage du fallback local
+    return OCREngine(enable_google_vision=False)  # Simule l'usage du fallback local
 
 @pytest.mark.parametrize("text,expected_keys", [
     (
