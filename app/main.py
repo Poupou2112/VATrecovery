@@ -8,9 +8,9 @@ from app.dashboard import dashboard_router
 from app.reminder import reminder_router
 from app.config import settings
 from app.api import api_router
-from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 import aioredis
+from fastapi_limiter import FastAPILimiter
 from loguru import logger
 
 setup_logger()
@@ -39,7 +39,7 @@ async def log_requests(request: Request, call_next):
 # Init Redis + Rate Limiter
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.from_url("redis://localhost", encoding="utf8", decode_responses=True)
+    redis = await aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
     await FastAPILimiter.init(redis)
 
 # Shutdown propre
