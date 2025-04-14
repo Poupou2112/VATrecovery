@@ -1,8 +1,24 @@
 import pytest
-from fastapi.testclient import TestClient
-from app.main import app
+from app.models import User
+from app.security import generate_password_hash
+from app.init_db import SessionLocal
 
 client = TestClient(app)
+
+@pytest.fixture
+def test_user():
+    db = SessionLocal()
+    user = User(email="test@example.com", hashed_password=generate_password_hash("test123"), is_active=True, is_admin=True, api_token="testtoken")
+    db.add(user)
+    db.commit()
+    yield user
+    db.delete(user)
+    db.commit()
+    db.close()
+
+@pytest.fixture
+def api_token():
+    return "testtoken"
 
 def test_login_success(test_user):
     response = client.post(
