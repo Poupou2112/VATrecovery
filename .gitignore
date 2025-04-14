@@ -1,18 +1,22 @@
-# Fichiers Python
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.log
 
 # Environnements virtuels
 venv/
 .env
 
-# Fichiers sensibles
+# Secrets
 credentials.json
 
-# Fichiers de logs
-*.log
+# IDEs
+.vscode/
+.idea/
 
-# Fichiers de test
+# Test coverage
 .coverage
 htmlcov/
+coverage.xml
+pytest_cache/
