@@ -1,48 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
-from slowapi import Limiter
+"""
+auth.py - Gère l'authentification et la sécurité (JWT, tokens API)
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status, Security
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi_limiter import Limiter
+from fastapi_limiter.depends import RateLimiter
 from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy.orm import Session
+from datetime import timedelta
+
+from app.models import User
+from app.schemas.user import Token, TokenData
+from app.security import authenticate_user, create_access_token
+from app.init_db import get_db_session
+from app.logger_setup import logger
+from app.config import settings
+
+from typing import Optional
 from jose import JWTError, jwt
-from pydantic import BaseModel
-from app.logger_setup import setup_logger
-from app.config import get_settings
 
-# Initialisation
-settings = get_settings()
-logger = setup_logger()
-
-# Rate limiter
+auth_router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
-# Authentification par token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-# Router principal
-router = APIRouter()
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Modèle pour l'utilisateur
-class TokenData(BaseModel):
-    username: str | None = None
+@auth_router.post("/login", response_model=Token, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db_session)):
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    logger.info(f"✅ Login successful for user: {user.email}")
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# Décodage du token et vérification utilisateur
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db_session)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token: username missing")
-        return {"username": username}
-    except JWTError as e:
-        logger.error(f"Token decoding error: {e}")
-        raise HTTPException(status_code=403, detail="Could not validate credentials")
+        email: Optional[str] = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
 
-# Exemple de route protégée
-@router.get("/me")
-@limiter.limit("5/minute")
-async def read_current_user(request: Request, user: dict = Depends(get_current_user)):
-    return {"user": user}
-
-# Export du router
-auth_router = router
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
