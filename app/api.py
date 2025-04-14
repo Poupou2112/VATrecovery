@@ -4,7 +4,7 @@ api.py - Regroupe les routes principales de l'API
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
-from app.schemas
+from app.schemas import ReceiptOut
 from app.models import Receipt
 from app.dependencies import get_current_user
 from app.init_db import get_db_session
