@@ -1,28 +1,36 @@
 [tool.poetry]
 name = "vatrecovery"
 version = "0.1.0"
-description = "Récupération de TVA sur notes de frais"
+description = "Application de récupération de TVA sur notes de frais"
 authors = ["Ton Nom <ton.email@example.com>"]
+readme = "README.md"
 packages = [{ include = "app" }]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.78.0"
-uvicorn = "^0.17.6"
-httpx = "^0.23.3"
+fastapi = "^0.95.2"
+uvicorn = "^0.22.0"
+sqlalchemy = "^2.0"
+jinja2 = "^3.1.3"
+python-multipart = "^0.0.6"
 pydantic = "^2.4.2"
-sqlalchemy = "^1.4"
+pydantic-settings = "^2.0.3"
+email-validator = "^2.1.0.post1"
 pytesseract = "^0.3.13"
 pillow = "^9.5.0"
-apscheduler = "^3.10.4"
-loguru = "^0.7.2"
-email-validator = "^2.0.0.post2"
-requests = "^2.31.0"
+httpx = "^0.24.1"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
-pytest-cov = "^3.0.0"
-coverage = "^7.8.0"
+pytest-cov = "^4.1.0"
+coverage = "^7.4.0"
+requests = "^2.31.0"
+ruff = "^0.3.3"
+mypy = "^1.9.0"
+types-pytz = "^2024.1.0.20240311"
+types-requests = "^2.31.0.20240311"
 
 [build-system]
 requires = ["poetry-core"]
