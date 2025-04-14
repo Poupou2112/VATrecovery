@@ -41,9 +41,8 @@ class User(Base):
         return self.api_token
 
 class OCREngine:
-    def __init__(self):
-        from google.cloud import vision
-        self.client = vision.ImageAnnotatorClient()
+    def __init__(self, use_google_vision: bool = True):
+        self.use_google_vision = use_google_vision
 
     def extract_text(self, image_content: bytes) -> str:
         image = vision.Image(content=image_content)
