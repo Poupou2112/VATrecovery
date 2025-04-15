@@ -17,6 +17,8 @@ setup_logger()
 app = FastAPI(title=settings.APP_NAME)
 
 app.include_router(api_router, prefix="/api")
+router.post("/api/upload")(upload_receipt)
+router.get("/api/receipts")(get_receipts)
 
 # CORS middleware (optionnel selon besoin)
 app.add_middleware(
