@@ -2,7 +2,7 @@ import requests
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from loguru import logger
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 
 router = APIRouter()
 @router.post("/upload")
