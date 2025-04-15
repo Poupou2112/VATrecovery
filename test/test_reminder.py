@@ -3,6 +3,7 @@ from app.models import Receipt, User
 from datetime import datetime, timedelta
 from app.init_db import SessionLocal
 db = SessionLocal()
+Base.metadata.create_all(bind=engine)
 
 def test_send_reminder_mock(monkeypatch):
     class FakeQuery:
