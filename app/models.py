@@ -26,12 +26,12 @@ class User(Base):
     receipts = relationship("Receipt", back_populates="user")
 
     def set_password(self, password: str) -> None:
-        """Set password hash from plain text password"""
-        self.password_hash = generate_password_hash(password)
+        """Set hashed_password from plain text password"""
+        self.hashed_password = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
         """Verify password against stored hash"""
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.hashed_password, password)
     
     @classmethod
     def get_by_token(cls, session, token: str) -> Optional["User"]:
