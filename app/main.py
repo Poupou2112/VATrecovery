@@ -40,6 +40,8 @@ async def log_requests(request: Request, call_next):
 async def startup():
     redis_instance = redis.from_url(get_settings().REDIS_URL, encoding="utf-8", decode_responses=True)
     await FastAPILimiter.init(redis_instance)
+    redis_client = redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(redis_client)
 
 # Shutdown propre
 @app.on_event("shutdown")
