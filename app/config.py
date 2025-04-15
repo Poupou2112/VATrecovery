@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 jour
     API_TEST_TOKEN: str = "testtoken"
-    IMAP_USER: str = "testuser@example.com" 
-    IMAP_SERVER: str = "imap.test.com"
-    IMAP_PASSWORD: str = Field(default="dummy", env="IMAP_PASSWORD")
+    IMAP_PASSWORD: str = "yourpassword"
+    IMAP_USER: str = "your@email.com"
+    IMAP_SERVER: str = "imap.gmail.com"
 
     # Email
     SMTP_HOST: str = "smtp.example.com"
