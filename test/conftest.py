@@ -1,4 +1,5 @@
 import pytest
+import fastapi_limiter
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -13,6 +14,8 @@ DATABASE_URL = "sqlite:///:memory:"  # base en mémoire pour les tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+fastapi_limiter.FastAPILimiter.init = lambda *args, **kwargs: None
 
 Base.metadata.create_all(bind=engine)
 
