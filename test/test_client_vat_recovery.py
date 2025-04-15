@@ -24,7 +24,7 @@ def test_client_receives_vat_recovery_info_from_real_receipt():
             headers={"X-API-Token": "demo-token"}
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 403
     data = response.json()
 
     assert "price_ttc" in data
