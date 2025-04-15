@@ -9,7 +9,6 @@ from app.reminder import reminder_router
 from app.config import settings
 from app.api import api_router
 import redis.asyncio as redis
-import aioredis
 from fastapi_limiter import FastAPILimiter
 from loguru import logger
 
