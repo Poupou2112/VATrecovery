@@ -1,8 +1,10 @@
 from app.reminder import send_reminder
 from app.database import Base
+from app.database import engine
 from app.models import Receipt, User
 from datetime import datetime, timedelta
 from app.init_db import SessionLocal
+
 db = SessionLocal()
 Base.metadata.create_all(bind=engine)
 
