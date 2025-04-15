@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     API_TEST_TOKEN: str = "testtoken"
     IMAP_USER: str = "testuser@example.com" 
     IMAP_SERVER: str = "imap.test.com"
+    IMAP_PASSWORD: str = Field(default="dummy", env="IMAP_PASSWORD")
 
     # Email
     SMTP_HOST: str = "smtp.example.com"
