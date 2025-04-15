@@ -87,6 +87,13 @@ class OCREngine:
             "siret": r"\b(\d{14})\b",
             "siren": r"\b(\d{9})\b"
 }
+        if ht and ttc and not vat and not vat_rate:
+    try:
+        vat_amount = float(ttc) - float(ht)
+        vat_rate = round((vat_amount / float(ht)) * 100, 2)
+        result["vat_rate"] = str(vat_rate)
+    except Exception:
+        result["vat_rate"] = None
 
         extracted = {}
         for key, pattern in patterns.items():
