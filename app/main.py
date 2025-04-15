@@ -14,7 +14,7 @@ from app.api import api_router
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 from loguru import logger
-
+import fakeredis
 
 # Logger
 setup_logger()
@@ -49,9 +49,8 @@ async def log_requests(request: Request, call_next):
 # Init Redis + Rate Limiter
 @app.on_event("startup")
 async def startup():
-    redis_url = get_settings().REDIS_URL or "redis://localhost"
-    redis_connection = redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
-    await FastAPILimiter.init(...)
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
+    await FastAPILimiter.init(redis_client)
 
 # Shutdown propre
 @app.on_event("shutdown")
