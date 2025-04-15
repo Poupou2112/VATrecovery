@@ -45,6 +45,10 @@ class User(Base):
         return self.api_token
 
 class OCREngine:
+    def extract_from_bytes(self, image_bytes: bytes) -> dict:
+        text = self.ocr_google(image_bytes)
+        return self.extract_fields_from_text(text)
+        
     def __init__(self, enable_google_vision: bool = True):
         self.enable_google_vision = enable_google_vision
 
