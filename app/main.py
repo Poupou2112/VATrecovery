@@ -12,6 +12,9 @@ import redis.asyncio as redis
 from fastapi_limiter import FastAPILimiter
 from loguru import logger
 from app.receipts import router as receipts_router
+from app.ocr_engine import OCREngine
+from app.schemas import ReceiptOut
+
 app.include_router(receipts_router)
 
 setup_logger()
@@ -19,6 +22,21 @@ setup_logger()
 app = FastAPI(title=settings.APP_NAME)
 
 router = APIRouter()
+
+@api_router.post("/upload", response_model=ReceiptOut)
+async def upload_receipt(
+    file: UploadFile = File(...),
+    x_api_token: str = Header(...)
+):
+    # vérification du token
+    if x_api_token != get_settings().API_TEST_TOKEN:
+        raise HTTPException(status_code=403, detail="Invalid API token")
+
+    # analyse OCR
+    engine = OCREngine()
+    contents = await file.read()
+    result = engine.extract_from_bytes(contents)
+    return result
 
 app.include_router(api_router, prefix="/api")
 router.post("/api/upload")(upload_receipt)
