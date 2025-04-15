@@ -9,7 +9,6 @@ from sqlalchemy.orm import sessionmaker
 from app.models import Base
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def test_send_reminder_mock(monkeypatch):
