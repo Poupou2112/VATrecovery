@@ -13,17 +13,17 @@ def test_root():
 
 def test_dashboard_auth_fail():
     response = client.get("/dashboard")
-    assert response.status_code in (401, 403)
+    assert response.status_code in 401
     assert "Not authenticated" in response.text or "Forbidden" in response.text
 
 
 def test_api_without_token():
     response = client.get("/api/receipts")
-    assert response.status_code in (401, 403)
+    assert response.status_code in 401
     assert "Not authenticated" in response.text
 
 
 def test_api_with_fake_token():
     response = client.get("/api/receipts", headers={"X-API-Token": "invalid_token"})
-    assert response.status_code in (401, 403)
+    assert response.status_code in 401
     assert "Invalid API token" in response.text or "Forbidden" in response.text
