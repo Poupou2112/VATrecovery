@@ -120,7 +120,7 @@ class OCREngine:
             return extracted
 
     def extract_from_bytes(self, image_bytes: bytes) -> dict:
-        text = self.ocr_google(image_bytes)
+        text = self.extract_text_google_vision(image_bytes)
         return self.extract_fields_from_text(text)
         
 
