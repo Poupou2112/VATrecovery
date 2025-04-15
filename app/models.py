@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from secrets import token_urlsafe
 from typing import Optional, List
+from app.database import Base
 
 Base = declarative_base()
 hashed_password = Column(String, nullable=False)
