@@ -25,7 +25,6 @@ python-jose = "^3.3.0"
 fastapi-limiter = "^0.1.5"
 loguru = "^0.7.2"
 apscheduler = "^3.10.4"
-redis = "^4.5.5"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 aioredis = "^2.0.1"
 redis = { version = ">=4.2.0", extras = ["async"] }
