@@ -2,6 +2,12 @@ import requests
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from loguru import logger
+from fastapi import APIRouter
+
+router = APIRouter()
+@router.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    return {"filename": file.filename}
 
 def get_receipts_by_client(db: Session, client_id: str) -> List[Any]:
     """
