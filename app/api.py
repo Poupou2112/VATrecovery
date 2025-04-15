@@ -1,14 +1,14 @@
-"""
-api.py - Regroupe les routes principales de l'API
-"""
-
-from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
+
+from fastapi import APIRouter, UploadFile, File, Header, HTTPException, Depends
+from sqlalchemy.orm import Session
+
 from app.schemas import ReceiptOut
 from app.models import Receipt
+from app.ocr_engine import OCREngine
+from app.config import get_settings
 from app.dependencies import get_current_user
 from app.init_db import get_db_session
-from sqlalchemy.orm import Session
 
 api_router = APIRouter()
 
@@ -20,3 +20,16 @@ def list_receipts(current_user=Depends(get_current_user), db: Session = Depends(
 @api_router.get("/ping")
 def health_check():
     return {"message": "pong"}
+
+@api_router.post("/upload", response_model=ReceiptOut)
+async def upload_receipt(
+    file: UploadFile = File(...),
+    x_api_token: str = Header(...)
+):
+    if x_api_token != get_settings().API_TEST_TOKEN:
+        raise HTTPException(status_code=403, detail="Invalid API token")
+
+    engine = OCREngine()
+    contents = await file.read()
+    result = engine.extract_from_bytes(contents)
+    return result
