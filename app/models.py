@@ -6,7 +6,7 @@ from secrets import token_urlsafe
 from typing import Optional, List
 
 Base = declarative_base()
-hashed_password = Column(String)
+hashed_password = Column(String, nullable=False)
 
 class User(Base):
     __tablename__ = "users"
