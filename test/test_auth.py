@@ -13,7 +13,7 @@ Base.metadata.create_all(bind=engine)
 @pytest.fixture
 def test_user():
     db = SessionLocal()
-    user = User(email="test@example.com", hashed_password=generate_password_hash("test123"), is_active=True, is_admin=True, api_token="testtoken")
+    user = User(email="test@example.com", password_hash=generate_password_hash("test"), api_token="testtoken", client_id="testclient")
     db.add(user)
     db.commit()
     yield user
