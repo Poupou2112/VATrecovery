@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 jour
     API_TEST_TOKEN: str = "testtoken"
-    IMAP_PASSWORD: str = "yourpassword"
+    IMAP_PASSWORD: str = os.getenv("IMAP_PASSWORD", "dummy-password")
     IMAP_USER: str = "your@email.com"
     IMAP_SERVER: str = "imap.gmail.com"
 
