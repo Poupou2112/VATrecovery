@@ -7,6 +7,7 @@ from typing import Optional, List
 
 Base = declarative_base()
 hashed_password = Column(String, nullable=False)
+hashed_password: Mapped[str]
 
 class User(Base):
     __tablename__ = "users"
