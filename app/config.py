@@ -1,7 +1,7 @@
+import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 import redis.asyncio as redis
-
 
 class Settings(BaseSettings):
     APP_NAME: str = "VATrecovery"
