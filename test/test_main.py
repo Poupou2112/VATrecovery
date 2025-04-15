@@ -13,13 +13,13 @@ def test_root():
 
 def test_dashboard_auth_fail():
     response = client.get("/dashboard")
-    assert response.status_code == 401 or response.status_code == 403
+    assert response.status_code == 403
     assert "Not authenticated" in response.text or "Forbidden" in response.text
 
 
 def test_api_without_token():
     response = client.get("/api/receipts")
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert "Not authenticated" in response.text
 
 
