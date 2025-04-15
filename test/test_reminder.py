@@ -1,4 +1,5 @@
 from app.reminder import send_reminder
+from app.database import Base
 from app.models import Receipt, User
 from datetime import datetime, timedelta
 from app.init_db import SessionLocal
