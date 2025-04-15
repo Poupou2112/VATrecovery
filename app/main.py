@@ -11,14 +11,23 @@ from app.api import api_router
 import redis.asyncio as redis
 from fastapi_limiter import FastAPILimiter
 from loguru import logger
+from app.receipts import router as receipts_router
+app.include_router(receipts_router)
 
 setup_logger()
 
 app = FastAPI(title=settings.APP_NAME)
 
+router = APIRouter()
+
 app.include_router(api_router, prefix="/api")
 router.post("/api/upload")(upload_receipt)
 router.get("/api/receipts")(get_receipts)
+
+@router.post("/api/upload")
+async def upload_receipt(file: UploadFile = File(...)):
+    # traitement du fichier
+    return {"filename": file.filename}
 
 # CORS middleware (optionnel selon besoin)
 app.add_middleware(
