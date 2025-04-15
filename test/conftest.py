@@ -7,17 +7,29 @@ from app.main import app
 from app.database import Base, get_db
 from app.init_db import init_default_data
 
-Base.metadata.create_all(bind=engine)
 
-# Crée une base SQLite temporaire pour les tests
+# Configuration de la base de test
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Initialise la base avant tous les tests
-Base.metadata.create_all(bind=engine)
+# Setup général : création et initialisation de la base de test
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    init_default_data()
 
+# Fixture pour injecter une session DB de test
+@pytest.fixture(scope="function")
+def db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Override de la dépendance de FastAPI
 def override_get_db():
     db = TestingSessionLocal()
     try:
@@ -25,21 +37,13 @@ def override_get_db():
     finally:
         db.close()
 
-# Remplace la dépendance de FastAPI par la version de test
 app.dependency_overrides[get_db] = override_get_db
 
-@pytest.fixture(scope="module")
+# Fixture client FastAPI
+@pytest.fixture(scope="function")
 def client():
-    init_default_data()  # ← Assure-toi que la fonction insère bien des données cohérentes
     with TestClient(app) as c:
         yield c
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_database():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-@pytest.fixture
 def client():
     with TestClient(app) as c:
         yield c
