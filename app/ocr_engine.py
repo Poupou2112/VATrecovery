@@ -117,7 +117,7 @@ class OCREngine:
             if match:
                 extracted[key] = match.group(1).strip()
 
-            return extracted
+        return extracted
 
     def extract_from_bytes(self, image_bytes: bytes) -> dict:
         text = self.extract_text_google_vision(image_bytes)
