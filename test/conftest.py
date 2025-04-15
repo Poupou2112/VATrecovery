@@ -5,8 +5,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.main import app
 from app.database import Base, get_db
+from app.models import Base
 from app.init_db import init_default_data
 
+Base.metadata.create_all(bind=engine)
 
 # Configuration de la base de test
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
