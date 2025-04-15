@@ -97,6 +97,8 @@ class OCREngine:
             match = re.search(pattern, text)
             if match:
                 data[key] = match.group(1)
+                
+    return extracted
 
         # Compléter si seulement HT + TTC trouvés
         ht = data.get("price_ht")
