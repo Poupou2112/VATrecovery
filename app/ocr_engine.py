@@ -45,9 +45,9 @@ class User(Base):
         return self.api_token
 
 class OCREngine:
-    def extract_from_bytes(self, image_bytes: bytes) -> dict:
-        text = self.ocr_google(image_bytes)
-        return self.extract_fields_from_text(text)
+    def ocr_bytes(self, content: bytes) -> str:
+        # Simule l’OCR (ou appelle un vrai moteur comme Google Vision)
+        return content.decode("utf-8", errors="ignore")
         
     def __init__(self, enable_google_vision: bool = True):
         self.enable_google_vision = enable_google_vision
@@ -76,6 +76,7 @@ class OCREngine:
         return texts[0].description if texts else ""
 
     def extract_fields_from_text(self, text: str) -> dict:
+        import re
         patterns = {
             "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
             "company_name": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
@@ -91,13 +92,24 @@ class OCREngine:
             "siret": r"\b(\d{14})\b",
             "siren": r"\b(\d{9})\b"
 }
+        data = {}
+        for key, pattern in patterns.items():
+            match = re.search(pattern, text)
+            if match:
+                data[key] = match.group(1)
+
+        # Compléter si seulement HT + TTC trouvés
+        ht = data.get("price_ht")
+        ttc = data.get("price_ttc")
+        vat = data.get("vat_amount")
+        vat_rate = data.get("vat_rate")
+        
         if ht and ttc and not vat and not vat_rate:
             try:
-                vat_amount = float(ttc) - float(ht)
-                vat_rate = round((vat_amount / float(ht)) * 100, 2)
-                result["vat_rate"] = str(vat_rate)
+                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
+                data["vat_amount"] = str(round(vat_val, 2))
             except Exception:
-                result["vat_rate"] = None
+                pass
 
         extracted = {}
         for key, pattern in patterns.items():
@@ -106,6 +118,11 @@ class OCREngine:
                 extracted[key] = match.group(1).strip()
 
             return extracted
+
+    def extract_from_bytes(self, image_bytes: bytes) -> dict:
+        text = self.ocr_google(image_bytes)
+        return self.extract_fields_from_text(text)
+        
 
 class Receipt(Base):
     __tablename__ = "receipts"
