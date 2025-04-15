@@ -38,8 +38,8 @@ async def log_requests(request: Request, call_next):
 # Init Redis + Rate Limiter
 @app.on_event("startup")
 async def startup():
-    redis = await aioredis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
-    await FastAPILimiter.init(redis)
+    redis_instance = redis.from_url(get_settings().REDIS_URL, encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(redis_instance)
 
 # Shutdown propre
 @app.on_event("shutdown")
