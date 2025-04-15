@@ -15,13 +15,12 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
     client_id = Column(String, nullable=False, index=True)
     api_token = Column(String, unique=True, index=True, default=lambda: token_urlsafe(32))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
-    hashed_password = Column(String)
     
     # Relations
     receipts = relationship("Receipt", back_populates="user")
