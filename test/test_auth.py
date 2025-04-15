@@ -6,6 +6,7 @@ from app.security import generate_password_hash
 from app.init_db import SessionLocal
 
 client = TestClient(app)
+Base.metadata.create_all(bind=engine)
 
 @pytest.fixture
 def test_user():
