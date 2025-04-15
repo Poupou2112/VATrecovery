@@ -7,6 +7,8 @@ from app.main import app
 from app.database import Base, get_db
 from app.init_db import init_default_data
 
+Base.metadata.create_all(bind=engine)
+
 # Crée une base SQLite temporaire pour les tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
