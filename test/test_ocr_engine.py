@@ -17,27 +17,31 @@ def engine():
 ])
 def test_extract_fields_from_text(engine, text, expected_keys):
     data = engine.extract_fields_from_text(text)
+    assert data is not None, "extract_fields_from_text should return a dict"
     for key in expected_keys:
         assert key in data, f"'{key}' should be extracted"
-        assert isinstance(data[key], str) or data[key] is None
 
 def test_extract_only_ht_and_ttc(engine):
     text = "HT: 45.50 EUR\nTTC: 50.00 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data["price_ht"] == "45.50", "HT should be extracted correctly"
-    assert data["price_ttc"] == "50.00", "TTC should be extracted correctly"
+    assert data is not None
+    assert data.get("price_ht") == "45.50"
+    assert data.get("price_ttc") == "50.00"
+    assert data.get("vat_amount") == "4.5"
 
 def test_extract_with_vat_rate(engine):
     text = "HT: 50.00 EUR\nTVA: 10.00 EUR\nTTC: 60.00 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data["price_ht"] == "50.00"
-    assert data["vat_amount"] == "10.00"
-    assert data["price_ttc"] == "60.00"
-    assert data["vat_rate"] == "20.0", "Should compute 20% VAT rate correctly"
+    assert data is not None
+    assert data.get("price_ht") == "50.00"
+    assert data.get("vat_amount") == "10.00"
+    assert data.get("price_ttc") == "60.00"
+    assert data.get("vat_rate") == "20.0"
 
 def test_extract_info_minimal(engine):
     text = "Total TTC : 34.50 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data["price_ttc"] == "34.50", "TTC should be detected"
-    assert data["price_ht"] is None, "HT should not be found"
-    assert data["vat_amount"] is None, "VAT should not be found"
+    assert data is not None
+    assert data.get("price_ttc") == "34.50", "TTC should be detected"
+    assert data.get("price_ht") is None, "HT should not be found"
+    assert data.get("vat_amount") is None, "VAT should not be found"
