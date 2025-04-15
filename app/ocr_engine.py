@@ -76,7 +76,6 @@ class OCREngine:
         return texts[0].description if texts else ""
 
     def extract_fields_from_text(self, text: str) -> dict:
-        import re
         patterns = {
             "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
             "company_name": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
@@ -91,33 +90,27 @@ class OCREngine:
             "email": r"([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)",
             "siret": r"\b(\d{14})\b",
             "siren": r"\b(\d{9})\b"
-}
-        data = {}
-        for key, pattern in patterns.items():
-            match = re.search(pattern, text)
-            if match:
-                data[key] = match.group(1)
-                
-    return extracted
-
-        # Compléter si seulement HT + TTC trouvés
-        ht = data.get("price_ht")
-        ttc = data.get("price_ttc")
-        vat = data.get("vat_amount")
-        vat_rate = data.get("vat_rate")
-        
-        if ht and ttc and not vat and not vat_rate:
-            try:
-                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
-                data["vat_amount"] = str(round(vat_val, 2))
-            except Exception:
-                pass
+        }
 
         extracted = {}
         for key, pattern in patterns.items():
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 extracted[key] = match.group(1).strip()
+                
+        ht = extracted.get("price_ht")
+        ttc = extracted.get("price_ttc")
+        vat = extracted.get("vat_amount")
+        vat_rate = extracted.get("vat_rate")
+        
+        if ht and ttc and not vat and not vat_rate:
+            try:
+                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
+                extracted["vat_amount"] = str(round(vat_val, 2))
+            except Exception:
+                pass
+
+        return extracted
 
     def extract_from_bytes(self, image_bytes: bytes) -> dict:
         text = self.extract_text_google_vision(image_bytes)
