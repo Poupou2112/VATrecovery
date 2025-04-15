@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.models import User
 from app.database import Base
 from app.database import engine
 from app.security import generate_password_hash
