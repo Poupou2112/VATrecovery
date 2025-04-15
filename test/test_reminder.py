@@ -5,9 +5,12 @@ from app.models import Receipt, User
 from datetime import datetime, timedelta
 from app.init_db import SessionLocal
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models import Base
 
 db = SessionLocal()
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 def test_send_reminder_mock(monkeypatch):
