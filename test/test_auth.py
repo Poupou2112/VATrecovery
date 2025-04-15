@@ -41,3 +41,11 @@ def test_login_failure():
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect email or password"
+
+def create_test_user():
+    db = SessionLocal()
+    user = User(
+        email="test@example.com",
+        password_hash=generate_password_hash("test123"),
+        client_id="demo",
+        api_token="testtoken"
