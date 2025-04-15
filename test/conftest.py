@@ -39,6 +39,10 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+@pytest.fixture
+def api_token():
+    return "testtoken"
+
 # Fixture client FastAPI
 @pytest.fixture(scope="function")
 def client():
@@ -47,3 +51,4 @@ def client():
 def client():
     with TestClient(app) as c:
         yield c
+        
