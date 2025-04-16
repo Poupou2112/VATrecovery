@@ -104,12 +104,12 @@ class OCREngine:
         vat_rate = extracted.get("vat_rate")
         
         if ht and vat and not vat_rate:
-    try:
-        vat_rate_val = (float(vat.replace(",", ".")) / float(ht.replace(",", "."))) * 100
-        extracted["vat_rate"] = str(round(vat_rate_val, 1))
-    except Exception:
-        pass
-
+            try:
+                vat_rate_val = (float(vat.replace(",", ".")) / float(ht.replace(",", "."))) * 100
+                extracted["vat_rate"] = str(round(vat_rate_val, 1))
+            except Exception:
+                pass
+        
         return extracted
 
     def extract_from_bytes(self, image_bytes: bytes) -> dict:
