@@ -1,3 +1,6 @@
+import os
+os.environ["ENV"] = "test" 
+
 import pytest
 import fastapi_limiter
 
@@ -12,9 +15,6 @@ from app.init_db import init_default_data
 
 from app.main import app
 from app.database import Base, engine
-
-import os
-os.environ["ENV"] = "test" 
 
 DATABASE_URL = "sqlite:///:memory:"  # base en mémoire pour les tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
