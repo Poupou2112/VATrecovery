@@ -20,13 +20,6 @@ def test_extract_fields_from_text(engine, text, expected_keys):
     assert data is not None, "extract_fields_from_text should return a dict"
     for key in expected_keys:
         assert key in data, f"'{key}' should be extracted"
-        
-        if ht and vat and not vat_rate:
-    try:
-        vat_rate_val = (float(vat.replace(",", ".")) / float(ht.replace(",", "."))) * 100
-        extracted["vat_rate"] = str(round(vat_rate_val, 1))
-    except Exception:
-        pass
 
 def test_extract_only_ht_and_ttc(engine):
     text = "HT: 45.50 EUR\nTTC: 50.00 EUR"
