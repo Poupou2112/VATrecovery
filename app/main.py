@@ -14,6 +14,7 @@ from app.api import api_router
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 from loguru import logger
+from fakeredis import FakeRedis
 import fakeredis
 
 # Logger
