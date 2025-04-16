@@ -63,3 +63,4 @@ def create_test_user():
         password_hash=generate_password_hash("test123"),
         client_id="demo",
         api_token="testtoken"
+    )
