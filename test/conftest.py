@@ -10,6 +10,12 @@ from app.models import Base
 from app.database import get_db
 from app.init_db import init_default_data
 
+from app.main import app
+from app.database import Base, engine
+
+import os
+os.environ["ENV"] = "test" 
+
 DATABASE_URL = "sqlite:///:memory:"  # base en mémoire pour les tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
