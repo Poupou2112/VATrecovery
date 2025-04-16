@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.models import User
 from werkzeug.security import generate_password_hash
 from app.main import app
+from test.conftest import TestingSessionLocal
 
 client = TestClient(app)
 
