@@ -103,12 +103,12 @@ class OCREngine:
         vat = extracted.get("vat_amount")
         vat_rate = extracted.get("vat_rate")
         
-        if ht and ttc and not vat and not vat_rate:
-            try:
-                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
-                extracted["vat_amount"] = str(round(vat_val, 2))
-            except Exception:
-                pass
+        if ht and vat and not vat_rate:
+    try:
+        vat_rate_val = (float(vat.replace(",", ".")) / float(ht.replace(",", "."))) * 100
+        extracted["vat_rate"] = str(round(vat_rate_val, 1))
+    except Exception:
+        pass
 
         return extracted
 
