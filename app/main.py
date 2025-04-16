@@ -14,10 +14,9 @@ from app.api import api_router
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 from loguru import logger
-from fakeredis import FakeRedis
+from fakeredis.aioredis import FakeRedis
 import fakeredis
 import os
-
 IS_TEST = os.getenv("ENV") == "test"
 
 # Logger
