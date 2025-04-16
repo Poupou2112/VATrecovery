@@ -16,6 +16,13 @@ import redis.asyncio as redis
 from loguru import logger
 from fakeredis import FakeRedis
 import fakeredis
+import os
+IS_TEST = os.getenv("ENV") == "test"
+
+if IS_TEST:
+    from fakeredis import FakeRedis
+else:
+    from redis import asyncio as aioredis
 
 # Logger
 setup_logger()
@@ -50,8 +57,12 @@ async def log_requests(request: Request, call_next):
 # Init Redis + Rate Limiter
 @app.on_event("startup")
 async def startup():
-    redis_client = fakeredis.FakeRedis(decode_responses=True)
-    await FastAPILimiter.init(redis_client)
+    if IS_TEST:
+        redis = FakeRedis()
+    else:
+        redis = await aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
+
+    await FastAPILimiter.init(redis)
 
 # Shutdown propre
 @app.on_event("shutdown")
