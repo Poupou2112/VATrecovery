@@ -10,7 +10,6 @@ engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Dans setup_database()
-db = TestingSessionLocal()
 user = User(email="demo@example.com", password_hash=generate_password_hash("demo123"), api_token="demo-token", client_id="client-123")
 db.add(user)
 db.commit()
