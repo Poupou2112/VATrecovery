@@ -9,8 +9,6 @@ from sqlalchemy import create_engine
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-client = TestClient(app)
-
 # Dans setup_database()
 db = TestingSessionLocal()
 user = User(email="demo@example.com", password_hash=generate_password_hash("demo123"), api_token="demo-token", client_id="client-123")
