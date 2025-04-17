@@ -59,3 +59,5 @@ def api_token():
 def client():
     with TestClient(app) as c:
         yield c
+
+__all__ = ["TestingSessionLocal"]
