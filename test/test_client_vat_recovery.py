@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from app.models import User
 from werkzeug.security import generate_password_hash
 from app.main import app
-from conftest import TestingSessionLocal
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
