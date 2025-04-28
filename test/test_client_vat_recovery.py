@@ -40,7 +40,7 @@ def db():
 def test_client_receives_vat_recovery_info_from_real_receipt(client, db):
     user = User(
         email="demo@example.com",
-        password=generate_password_hash("demo123"),
+        password_hash=generate_password_hash("demo123"),
         api_token="demo-token",
         client_id="client-123"
     )
