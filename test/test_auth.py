@@ -60,8 +60,8 @@ def test_login_failure():
 def create_test_user():
     db = SessionLocal()
     user = User(
-        email="test@example.com",
-        password_hash=generate_password_hash("test123"),
-        client_id="demo",
-        api_token="testtoken"
+        email="demo@example.com",
+        password_hash=generate_password_hash("demo123"),
+        api_token="demo-token",
+        client_id="client-123"
     )
