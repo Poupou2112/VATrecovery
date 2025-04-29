@@ -43,6 +43,7 @@ def test_client_receives_vat_recovery_info_from_real_receipt(client, db):
         password_hash=generate_password_hash("demo123"),
         api_token="demo-token",
         client_id="client-123"
+        user.set_password("demo123")
     )
     db.add(user)
     db.commit()
