@@ -38,13 +38,8 @@ def db():
         db.close()
 
 def test_client_receives_vat_recovery_info_from_real_receipt(client, db):
-    user = User(
-        email="demo@example.com",
-        password_hash=generate_password_hash("demo123"),
-        api_token="demo-token",
-        client_id="client-123"
-        user.set_password("demo123")
-    )
+    user = User(email="demo@example.com", password_hash=generate_password_hash("demo123"), api_token="demo-token", client_id="client-123")
+    
     db.add(user)
     db.commit()
 
