@@ -13,7 +13,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
-def test_send_reminder_mock(monkeypatch):
+def test_send_reminder_mock(client, db):
     class FakeQuery:
         def filter(self, *args, **kwargs):
             return self
