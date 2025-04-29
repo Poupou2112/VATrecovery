@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     IMAP_PASSWORD: str = os.getenv("IMAP_PASSWORD", "dummy-password")
     IMAP_USER: str = "your@email.com"
     IMAP_SERVER: str = "imap.gmail.com"
+    REDIS_URL: str = "redis://localhost:6379"
 
     # Email
     SMTP_HOST: str = "smtp.example.com"
