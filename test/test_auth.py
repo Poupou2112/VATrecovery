@@ -6,8 +6,9 @@ from app.database import Base, engine
 from app.security import generate_password_hash
 from app.init_db import SessionLocal
 
-Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
+Base.metadata.drop_all(bind=engine)
+
 
 def setup_module(module):
     db = SessionLocal()
