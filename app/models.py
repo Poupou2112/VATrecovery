@@ -1,15 +1,14 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from secrets import token_urlsafe
 from typing import Optional, List
 from app.database import Base
-
-Base = declarative_base()
-hashed_password = Column(String, nullable=False)
-hashed_password: Mapped[str]
+import re
+from PIL import Image
+import pytesseract
+from io import BytesIO
 
 class User(Base):
     __tablename__ = "users"
@@ -23,27 +22,25 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
-    
-    # Relations
+
     receipts = relationship("Receipt", back_populates="user")
 
     def set_password(self, password: str) -> None:
-        """Set hashed_password from plain text password"""
         self.hashed_password = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
-        """Verify password against stored hash"""
         return check_password_hash(self.hashed_password, password)
     
     @classmethod
     def get_by_token(cls, session, token: str) -> Optional["User"]:
-        """Get user by API token if active"""
         return session.query(cls).filter_by(api_token=token, is_active=True).first()
     
     def regenerate_token(self) -> str:
-        """Generate a new API token"""
         self.api_token = token_urlsafe(32)
         return self.api_token
+
+    def __repr__(self):
+        return f"<User email={self.email} client_id={self.client_id}>"
 
 class Receipt(Base):
     __tablename__ = "receipts"
