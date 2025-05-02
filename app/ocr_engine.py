@@ -106,7 +106,7 @@ class OCREngine:
         if ht and ttc and not vat:
             try:
                 vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
-            extracted["vat_amount"] = str(round(vat_val, 2))
+                extracted["vat_amount"] = str(round(vat_val, 2))
             except Exception:
                 pass
         
