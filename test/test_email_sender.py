@@ -2,6 +2,41 @@ from email.message import EmailMessage
 import pytest
 from app.email_sender import send_email
 from unittest.mock import patch, MagicMock
+import email
+
+def test_send_email():
+    sender = "test@vatrecovery.com"
+    receiver = "client@example.com"
+    subject = "Test VAT Recovery"
+    body = "Please find attached your invoice."
+    reply_to = "support@vatrecovery.com"
+
+    with patch("smtplib.SMTP") as mock_smtp:
+        instance = mock_smtp.return_value.__enter__.return_value
+
+        send_email(sender, receiver, subject, body, reply_to=reply_to)
+
+        instance.sendmail.assert_called_once()
+        args, kwargs = instance.sendmail.call_args
+        from_email, to_email, mime_message = args
+
+        # Vérifications de base
+        assert from_email == sender
+        assert to_email == receiver
+
+        # Analyse du message MIME
+        parsed = email.message_from_string(mime_message)
+
+        # Vérification des en-têtes
+        assert parsed["From"] == sender
+        assert parsed["To"] == receiver
+        assert parsed["Subject"] == subject
+        assert parsed["Reply-To"] == reply_to
+        assert parsed["MIME-Version"] == "1.0"
+        assert "text/plain" in parsed.get_content_type()
+
+        # Vérification du corps
+        assert body in parsed.get_payload()
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
