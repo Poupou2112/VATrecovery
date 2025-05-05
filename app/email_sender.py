@@ -2,6 +2,8 @@ import smtplib
 from email.message import EmailMessage
 from app.config import get_settings
 from app.logger_setup import logger
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 settings = get_settings()
 
@@ -40,7 +42,26 @@ class EmailService:
             return False
 
 
-def send_email(to: str, subject: str, body: str, attachments: list = None, service: EmailService = None) -> bool:
-    if service is None:
-        service = EmailService()
-    return service.send(to, subject, body, attachments)
+def send_email(subject: str, body: str, to_addresses: list[str], html: str = None, reply_to: str = None):
+    from_address = "noreply@vatrecovery.com"
+    to_address = ", ".join(to_addresses)
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = from_address
+    msg["To"] = to_address
+    if reply_to:
+        msg["Reply-To"] = reply_to
+
+    part1 = MIMEText(body, "plain")
+    msg.attach(part1)
+
+    if html:
+        part2 = MIMEText(html, "html")
+        msg.attach(part2)
+
+    with smtplib.SMTP("localhost") as server:
+        server.sendmail(from_address, to_addresses, msg.as_string())
+
+    # ✅ Pour les tests : on retourne les éléments utilisés
+    return from_address, to_addresses, msg
