@@ -68,6 +68,32 @@ def test_send_reminder_mock(client, db):
         def first(self):
             return User(client_id=123, email="user@example.com")
 
+@pytest.mark.asyncio
+async def test_send_reminders_sends_email():
+    # Fake receipt à retourner
+    fake_receipt = Receipt(
+        id=1,
+        file="ticket.jpg",
+        email_sent_to="client@example.com",
+        email_sent=True,
+        invoice_received=False,
+        client_id="client123",
+        user_id=1
+    )
+
+    # Simule un db avec query().filter().all()
+    mock_db = MagicMock()
+    mock_db.query().filter().all.return_value = [fake_receipt]
+
+    # Patch la fonction d'envoi d'email
+    with patch("app.reminder.send_email") as mock_send_email:
+        await send_reminders(mock_db)
+        mock_send_email.assert_called_once_with(
+            to="client@example.com",
+            subject="Reminder: Missing Invoice",
+            body=pytest.any(str)
+        )
+
     class FakeSession:
         def query(self, model): return FakeQuery()
         def close(self): pass
