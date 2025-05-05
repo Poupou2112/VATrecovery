@@ -24,6 +24,7 @@ def setup_module(module):
     db.commit()
     db.refresh(user)
     db.close()
+    db.expire_all()
 
 client = TestClient(app)
 
