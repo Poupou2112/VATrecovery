@@ -1,3 +1,4 @@
+import pytest
 from app.reminder import send_reminder
 from app.database import Base
 from app.database import engine
@@ -7,6 +8,8 @@ from app.init_db import SessionLocal
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models import Base
+from unittest.mock import AsyncMock, patch
+from app.reminder import send_reminders
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -14,6 +17,16 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 @pytest.mark.asyncio
+@patch("app.reminder.Receipt.get_pending_receipts", return_value=[])
+@patch("app.reminder.send_email_reminder")
+async def test_send_reminders_no_pending_receipts(mock_send_email, mock_get_receipts):
+    await send_reminders()
+    
+    # Vérifie que la fonction de récupération a bien été appelée
+    mock_get_receipts.assert_called_once()
+    
+    # Vérifie qu'aucun e-mail n'est envoyé si la liste est vide
+    mock_send_email.assert_not_called()
 async def test_send_reminder_with_receipt(monkeypatch):
     class DummyReceipt:
         email_sent_to = "dummy@test.com"
