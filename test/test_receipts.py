@@ -33,6 +33,19 @@ class ReceiptOut(BaseModel):
 class Config:
         from_attributes = True
 
+def test_extract_fields_with_invalid_ttc():
+    engine = OCREngine(enable_google_vision=False)
+    text = """
+        Total TTC : abc
+        Montant HT : 45.50
+    """
+    fields = engine.extract_fields_from_text(text)
+    
+    assert "price_ht" in fields
+    assert fields["price_ht"] == "45.50"
+    assert "price_ttc" not in fields or fields.get("price_ttc") is None
+    assert "vat_amount" not in fields  # Le calcul échoue car TTC invalide
+
 def test_get_receipts_with_token(client, valid_token):
     response = client.get("/receipts/", headers={"X-API-Token": valid_token})
     assert response.status_code == 200
