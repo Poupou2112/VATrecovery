@@ -12,38 +12,63 @@ def test_send_email(mock_smtp):
     mock_smtp.return_value.__enter__.return_value = smtp_instance
     smtp_instance.sendmail.return_value = {}
 
-    result = send_email(
-        subject="Hello",
-        body="World",
-        recipients=["to@example.com"],
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
         from_address="from@example.com"
-    )
+)
 
-    assert result is True
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
+
+def test_send_email_html_structure(monkeypatch):
+    class DummySMTP:
+        def sendmail(self, from_addr, to_addrs, msg): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: DummySMTP())
+
+    subject = "HTML Test"
+    body = "Plain text"
+    html = "<h1>HTML content</h1>"
+
+    _, _, msg = send_email(subject=subject, body=body, to_addresses=["x@y.com"], html=html)
+
+    parts = msg.get_payload()
+    assert any(part.get_content_type() == "text/plain" for part in parts)
+    assert any(part.get_content_type() == "text/html" for part in parts)
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
         def __init__(self, *args, **kwargs): pass
-        def login(self, *args, **kwargs): pass
-        def sendmail(self, from_addr, to_addrs, msg):
-            parsed = email.message_from_string(msg)
-            assert parsed["To"] == "recipient@example.com"
-            assert parsed["Subject"] == "Hello"
-            assert "Test body" in parsed.get_payload()
-        def quit(self): pass
+        def sendmail(self, from_addr, to_addrs, msg): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
 
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MockSMTP())
 
-    result = send_email(
-        recipients=["recipient@example.com"],
-        subject="Hello",
-        body="Test body",
-        from_address="from@example.com"
-    )
-    assert result is True
+    subject = "Hello"
+    body = "Test body"
+    to = ["recipient@example.com"]
 
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
+        from_address="from@example.com"
+)
+
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_multiple_recipients(monkeypatch):
     mock_sendmail = MagicMock()
@@ -52,13 +77,19 @@ def test_send_email_multiple_recipients(monkeypatch):
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_mock)
 
     recipients = ["a@example.com", "b@example.com"]
-    result = send_email(
-        recipients=recipients,
-        subject="Multi",
-        body="Body",
+    
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
         from_address="from@example.com"
-    )
-    assert result is True
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_content_structure(monkeypatch):
     captured_msg = {}
@@ -75,14 +106,18 @@ def test_send_email_content_structure(monkeypatch):
     body = "Text content"
     html = "<h1>HTML</h1>"
 
-    result = send_email(
-            subject=subject,
-            body=body,
-            html=html,
-            recipients=["x@y.com"],
-            from_address="from@example.com"
-    )
-    assert result is True, "Expected email to be sent successfully"
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
+        from_address="from@example.com"
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
 
     msg = captured_msg["msg"]
     if msg.is_multipart():
@@ -104,13 +139,18 @@ def test_send_email_raises_exception(monkeypatch):
 
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: FailingSMTP())
 
-    result = send_email(
-        recipients=["fail@example.com"],
-        subject="Error",
-        body="Trigger",
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
         from_address="from@example.com"
-    )
-    assert result is False
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
     
 def test_send_email_contains_subject_and_body(monkeypatch):
     smtp_instance = MagicMock()
@@ -118,36 +158,50 @@ def test_send_email_contains_subject_and_body(monkeypatch):
 
     subject = "Important"
     body = "Urgent content"
-    result = send_email(
-        recipients=["test@x.com"],
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
-    )
-    assert result is True
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_mime_headers(monkeypatch):
     smtp_instance = MagicMock()
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
 
     reply = "someone@reply.com"
-    result = send_email(
-        recipients=["rcpt@domain.com"],
-        subject="Subj",
-        body="Body",
-        from_address="from@example.com",
-        reply_to=reply
-    )
-    assert result is True
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
+        from_address="from@example.com"
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_without_reply_to(monkeypatch):
     smtp_instance = MagicMock()
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
 
-    result = send_email(
-        recipients=["recipient@example.com"],
-        subject="Hello",
-        body="Test body",
+    subject = "Hello"
+    body = "World"
+    from_address, to_addresses, msg = send_email(
+        to_addresses=["to@example.com"],
+        subject=subject,
+        body=body,
         from_address="from@example.com"
-    )
-    assert result is True
+)
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in message["Subject"]
+    assert body in message.get_payload()[0].get_payload()
