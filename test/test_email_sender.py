@@ -3,6 +3,7 @@ import pytest
 from app.email_sender import send_email
 from unittest.mock import patch, MagicMock
 import email
+import smtplib
 
 def test_send_email(monkeypatch):
     mock_sendmail = MagicMock()
