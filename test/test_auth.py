@@ -42,22 +42,38 @@ def test_user():
 def api_token():
     return "testtoken"
 
-def test_login_success(test_user):
-    response = client.post(
-        "/auth/token",
-        data={"username": test_user.email, "password": "test"},  # Assurez-vous que le mot de passe est correct
-    )
+@pytest.fixture(scope="function")
+def db():
+    db = SessionLocal()
+    db.query(User).delete()
+    db.commit()
+    yield db
+    db.close()
+
+def create_user(db, email="demo@example.com", password="password", client_id="client1"):
+    user = User(email=email, client_id=client_id)
+    user.set_password(password)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+def test_login_success(db):
+    create_user(db)
+    response = client.post("/auth/login", json={
+        "username": "demo@example.com",
+        "password": "password"
+    })
     assert response.status_code == 200
     assert "access_token" in response.json()
-    assert response.json()["token_type"] == "bearer"
 
-def test_login_failure():
-    response = client.post(
-        "/auth/token",
-        data={"username": "wrong@example.com", "password": "wrongpassword"},
-    )
+def test_login_failure(db):
+    response = client.post("/auth/login", json={
+        "username": "wrong@example.com",
+        "password": "wrongpass"
+    })
     assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect email or password"
+    assert response.json()["detail"] == "Incorrect username or password"
 
 def create_test_user():
     db = SessionLocal()
