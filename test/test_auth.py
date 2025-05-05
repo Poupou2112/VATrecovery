@@ -64,8 +64,10 @@ def test_login_success(db):
         "username": "demo@example.com",
         "password": "password"
     })
+    data = response.json()
     assert response.status_code == 200
-    assert "access_token" in response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
 
 def test_login_failure(db):
     response = client.post("/auth/login", json={
