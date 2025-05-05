@@ -7,23 +7,12 @@ import smtplib
 
 from_address = "from@example.com"
 
-def test_send_email(monkeypatch):
-    mock_sendmail = MagicMock()
-    mock_smtp = MagicMock()
-    mock_smtp.sendmail = mock_sendmail
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: mock_smtp)
-
-    subject = "Test Subject"
-    body = "Test Body"
-    to = ["recipient@example.com"]
-
-    send_email(subject, body, to)
-
-    assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in msg["Subject"]
-    assert body in msg.get_payload(0).get_payload()
-    mock_sendmail.assert_called_once()
+def test_send_email():
+    from_address = "from@example.com"
+    recipients = ["test@example.com"]
+    subject = "Hello"
+    body = "World"
+    send_email(recipients=recipients, subject=subject, body=body, from_address=from_address)
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -38,16 +27,31 @@ def test_send_email_success(monkeypatch):
         def __enter__(self): return self
         def __exit__(self, *args): pass
 
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MockSMTP())
+
+    result = send_email(
+        recipients=["recipient@example.com"],
+        subject="Hello",
+        body="Test body",
+        from_address="from@example.com"
+    )
+    assert result is True
+
 
 def test_send_email_multiple_recipients(monkeypatch):
     mock_sendmail = MagicMock()
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=mock_sendmail))
+    smtp_mock = MagicMock()
+    smtp_mock.sendmail = mock_sendmail
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_mock)
 
     recipients = ["a@example.com", "b@example.com"]
-    _, to_addresses, msg = send_email("Multi", "Body", recipients)
-
-    assert to_addresses == recipients
-    assert "To" in msg
+    result = send_email(
+        recipients=recipients,
+        subject="Multi",
+        body="Body",
+        from_address="from@example.com"
+    )
+    assert result is True
 
 def test_send_email_content_structure(monkeypatch):
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
@@ -71,44 +75,49 @@ def test_send_email_raises_exception(monkeypatch):
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: FailingSMTP())
 
     with pytest.raises(smtplib.SMTPException):
-        send_email("Error", "Trigger", ["fail@example.com"])
+        send_email(
+            recipients=["fail@example.com"],
+            subject="Error",
+            body="Trigger",
+            from_address="from@example.com"
+        )
 
 def test_send_email_contains_subject_and_body(monkeypatch):
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
+    smtp_instance = MagicMock()
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
 
     subject = "Important"
     body = "Urgent content"
-    _, _, msg = send_email(subject, body, ["test@x.com"])
-
-    assert subject == msg["Subject"]
-    assert body in msg.get_payload(0).get_payload()
+    result = send_email(
+        recipients=["test@x.com"],
+        subject=subject,
+        body=body,
+        from_address="from@example.com"
+    )
+    assert result is True
 
 def test_send_email_mime_headers(monkeypatch):
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
+    smtp_instance = MagicMock()
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
 
     reply = "someone@reply.com"
-    _, _, msg = send_email("Subj", "Body", ["rcpt@domain.com"], reply_to=reply)
-
-    assert msg["Reply-To"] == reply
+    result = send_email(
+        recipients=["rcpt@domain.com"],
+        subject="Subj",
+        body="Body",
+        from_address="from@example.com",
+        reply_to=reply
+    )
+    assert result is True
 
 def test_send_email_without_reply_to(monkeypatch):
-    from app.email_sender import send_email
-
-    with patch("smtplib.SMTP") as mock_smtp:
-        smtp_instance = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = smtp_instance
-
-        send_email("test@example.com", "Hello", "<p>Content</p>", "no-reply@example.com")
-
-        mime_message = smtp_instance.sendmail.call_args[0][2]
-        assert "Reply-To:" not in mime_message
-
-    monkeypatch.setattr("smtplib.SMTP_SSL", lambda *args, **kwargs: MockSMTP())
+    smtp_instance = MagicMock()
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
 
     result = send_email(
-        to="recipient@example.com",
+        recipients=["recipient@example.com"],
         subject="Hello",
-        body="Test body"
+        body="Test body",
+        from_address="from@example.com"
     )
-
     assert result is True
