@@ -11,6 +11,20 @@ reminder_router = APIRouter()
 
 REMINDER_DELAY_DAYS = 7  # Peut être déplacé dans settings si besoin
 
+async def send_reminders(db: Session):
+    cutoff = datetime.utcnow() - timedelta(days=5)
+    receipts = db.query(Receipt).filter(
+        Receipt.invoice_received == False,
+        Receipt.email_sent == True,
+        Receipt.created_at < cutoff
+    ).all()
+
+    for receipt in receipts:
+        await send_email(
+            to=receipt.email_sent_to,
+            subject="Reminder: Missing Invoice",
+            body=f"Please send the invoice for receipt {receipt.file}"
+        )
 
 def get_db_session():
     db = SessionLocal()
