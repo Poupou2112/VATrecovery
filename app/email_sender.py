@@ -42,27 +42,37 @@ class EmailService:
             logger.exception(f"❌ Failed to send email to {to}: {e}")
             return False
 
+def send_email(
+    subject: str,
+    body: str,
+    recipients: List[str],
+    from_address: str,
+    html: Optional[str] = None,
+    reply_to: Optional[str] = None
+) -> bool:
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = from_address
+        msg["To"] = ", ".join(recipients)
 
-def send_email(subject: str, body: str, to_addresses: list[str], html: str = None, reply_to: str = None):
-    from_address = "noreply@vatrecovery.com"
-    to_address = ", ".join(to_addresses)
+        if reply_to:
+            msg["Reply-To"] = reply_to
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = from_address
-    msg["To"] = to_address
-    if reply_to:
-        msg["Reply-To"] = reply_to
+        part1 = MIMEText(body, "plain")
+        msg.attach(part1)
 
-    part1 = MIMEText(body, "plain")
-    msg.attach(part1)
+        if html:
+            part2 = MIMEText(html, "html")
+            msg.attach(part2)
 
-    if html:
-        part2 = MIMEText(html, "html")
-        msg.attach(part2)
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            server.sendmail(from_address, recipients, msg.as_string())
 
-    with smtplib.SMTP("localhost") as server:
-        server.sendmail(from_address, to_addresses, msg.as_string())
+        logger.info(f"📧 Email sent to {recipients} - {subject}")
+        return True
 
-    # ✅ Pour les tests : on retourne les éléments utilisés
-    return from_address, to_addresses, msg
+    except Exception as e:
+        logger.exception(f"❌ Failed to send email to {recipients}: {e}")
+        return False
