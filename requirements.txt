@@ -21,7 +21,7 @@ sqlalchemy==2.0.22
 psycopg2-binary==2.9.9
 alembic==1.12.1
 redis[async]>=4.2.0
-fakeredis==2.19.1
+fakeredis==2.19.0
 
 # Planification
 apscheduler==3.10.4
