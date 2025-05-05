@@ -15,7 +15,7 @@ def test_send_email(monkeypatch):
     body = "Test Body"
     to = ["recipient@example.com"]
 
-    from_address, to_addresses, msg = send_email(subject, body, to)
+    send_email(subject, body, to)
 
     assert from_address == "noreply@vatrecovery.com"
     assert to_addresses == to
@@ -89,7 +89,7 @@ def test_send_email_mime_headers(monkeypatch):
 
     assert msg["Reply-To"] == reply
 
-def test_send_email_without_reply_to():
+def test_send_email_without_reply_to(monkeypatch):
     from app.email_sender import send_email
 
     with patch("smtplib.SMTP") as mock_smtp:
