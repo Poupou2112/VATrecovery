@@ -48,6 +48,14 @@ def override_get_db():
     finally:
         db.close()
 
+@pytest.fixture
+def test_user(session):
+    user = User(email="test@example.com", client_id="testclient")
+    user.set_password("password")
+    session.add(user)
+    session.commit()
+    return user
+
 app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture
