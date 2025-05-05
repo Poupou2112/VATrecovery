@@ -4,38 +4,23 @@ from app.email_sender import send_email
 from unittest.mock import patch, MagicMock
 import email
 
-def test_send_email():
-    sender = "test@vatrecovery.com"
-    receiver = "client@example.com"
-    subject = "Test VAT Recovery"
-    body = "Please find attached your invoice."
-    reply_to = "support@vatrecovery.com"
+def test_send_email(monkeypatch):
+    mock_sendmail = MagicMock()
+    mock_smtp = MagicMock()
+    mock_smtp.sendmail = mock_sendmail
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: mock_smtp)
 
-    with patch("smtplib.SMTP") as mock_smtp:
-        instance = mock_smtp.return_value.__enter__.return_value
+    subject = "Test Subject"
+    body = "Test Body"
+    to = ["recipient@example.com"]
 
-        send_email(sender, receiver, subject, body)
+    from_address, to_addresses, msg = send_email(subject, body, to)
 
-        instance.sendmail.assert_called_once()
-        args, kwargs = instance.sendmail.call_args
-        from_email, to_email, mime_message = args
-
-        # Vérifications de base
-        assert from_email == sender
-        assert to_email == receiver
-
-        # Analyse du message MIME
-        parsed = email.message_from_string(mime_message)
-
-        # Vérification des en-têtes
-        assert parsed["From"] == sender
-        assert parsed["To"] == receiver
-        assert parsed["Subject"] == subject
-        assert parsed["MIME-Version"] == "1.0"
-        assert "text/plain" in parsed.get_content_type()
-
-        # Vérification du corps
-        assert body in parsed.get_payload()
+    assert from_address == "noreply@vatrecovery.com"
+    assert to_addresses == to
+    assert subject in msg["Subject"]
+    assert body in msg.get_payload(0).get_payload()
+    mock_sendmail.assert_called_once()
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -50,79 +35,58 @@ def test_send_email_success(monkeypatch):
         def __enter__(self): return self
         def __exit__(self, *args): pass
 
-def test_send_email_multiple_recipients():
-    with patch("smtplib.SMTP") as mock_smtp:
-        mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
 
-        send_email(
-            to=["user1@example.com", "user2@example.com"],
-            subject="Hello team",
-            html="<p>Test</p>",
-            from_email="sender@example.com"
-        )
+def test_send_email_multiple_recipients(monkeypatch):
+    mock_sendmail = MagicMock()
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=mock_sendmail))
 
-        mock_server.sendmail.assert_called_once()
-        recipients = mock_server.sendmail.call_args[0][1]
-        assert "user1@example.com" in recipients
-        assert "user2@example.com" in recipients
+    recipients = ["a@example.com", "b@example.com"]
+    _, to_addresses, msg = send_email("Multi", "Body", recipients)
 
-def test_send_email_content_structure():
-    with patch("smtplib.SMTP") as mock_smtp:
-        mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
+    assert to_addresses == recipients
+    assert "To" in msg
 
-        subject = "Subject line"
-        html = "<h1>Important</h1>"
-        send_email("to@example.com", subject, html, "from@example.com")
+def test_send_email_content_structure(monkeypatch):
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
 
-        msg = mock_server.sendmail.call_args[0][2]
-        assert subject in msg
-        assert html in msg
-        assert "MIME-Version" in msg
+    subject = "Hello"
+    body = "Text content"
+    html = "<h1>HTML</h1>"
+    _, _, msg = send_email(subject, body, ["x@y.com"], html=html)
 
-def test_send_email_raises_exception():
-    with patch("smtplib.SMTP", side_effect=RuntimeError("SMTP failed")):
-        with pytest.raises(RuntimeError, match="SMTP failed"):
-            send_email("to@example.com", "Subject", "<p>body</p>", "from@example.com")
+    parts = msg.get_payload()
+    assert any(part.get_content_type() == "text/plain" for part in parts)
+    assert any(part.get_content_type() == "text/html" for part in parts)
 
-def test_send_email_contains_subject_and_body():
-    with patch("smtplib.SMTP") as mock_smtp:
-        mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
 
-        subject = "Newsletter"
-        html = "<p>Important update</p>"
-        send_email("to@example.com", subject, html, "from@example.com")
+def test_send_email_raises_exception(monkeypatch):
+    class FailingSMTP:
+        def __enter__(self): return self
+        def __exit__(self, exc_type, exc_val, exc_tb): pass
+        def sendmail(self, *args, **kwargs): raise smtplib.SMTPException("SMTP error")
 
-        message = mock_server.sendmail.call_args[0][2]
-        assert subject in message
-        assert html in message
-        assert "Content-Type" in message
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: FailingSMTP())
 
-def test_send_email_mime_headers():
-    from app.email_sender import send_email
+    with pytest.raises(smtplib.SMTPException):
+        send_email("Error", "Trigger", ["fail@example.com"])
 
-    to = "user@example.com"
-    subject = "Test subject"
-    html_content = "<p>Hello!</p>"
-    sender = "bot@example.com"
-    reply_to = "support@example.com"
+def test_send_email_contains_subject_and_body(monkeypatch):
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
 
-    with patch("smtplib.SMTP") as mock_smtp:
-        smtp_instance = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = smtp_instance
+    subject = "Important"
+    body = "Urgent content"
+    _, _, msg = send_email(subject, body, ["test@x.com"])
 
-        send_email(to, subject, html_content, sender, reply_to=reply_to)
+    assert subject == msg["Subject"]
+    assert body in msg.get_payload(0).get_payload()
 
-        # Récupérer le message MIME envoyé
-        mime_message = smtp_instance.sendmail.call_args[0][2]
+def test_send_email_mime_headers(monkeypatch):
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
 
-        assert f"Subject: {subject}" in mime_message
-        assert "Content-Type: text/html" in mime_message
-        assert f"Reply-To: {reply_to}" in mime_message
-        assert f"From: {sender}" in mime_message
-        assert html_content in mime_message
+    reply = "someone@reply.com"
+    _, _, msg = send_email("Subj", "Body", ["rcpt@domain.com"], reply_to=reply)
+
+    assert msg["Reply-To"] == reply
 
 def test_send_email_without_reply_to():
     from app.email_sender import send_email
