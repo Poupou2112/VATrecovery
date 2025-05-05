@@ -5,6 +5,8 @@ from unittest.mock import patch, MagicMock
 import email
 import smtplib
 
+from_address = "from@example.com"
+
 def test_send_email(monkeypatch):
     mock_sendmail = MagicMock()
     mock_smtp = MagicMock()
