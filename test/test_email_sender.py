@@ -7,12 +7,25 @@ import smtplib
 
 from_address = "from@example.com"
 
-def test_send_email():
-    from_address = "from@example.com"
+def test_send_email(monkeypatch):
+    class DummySMTP:
+        def __init__(self, *args, **kwargs): pass
+        def login(self, *args, **kwargs): pass
+        def send_message(self, msg): self.msg = msg
+        def quit(self): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    dummy_smtp = DummySMTP()
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: dummy_smtp)
+
     recipients = ["test@example.com"]
     subject = "Hello"
     body = "World"
-    send_email(recipients=recipients, subject=subject, body=body, from_address=from_address)
+    from_address = "from@example.com"
+    result = send_email(subject=subject, body=body, recipients=recipients, from_address=from_address)
+
+    assert result is True
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -54,17 +67,35 @@ def test_send_email_multiple_recipients(monkeypatch):
     assert result is True
 
 def test_send_email_content_structure(monkeypatch):
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: MagicMock(sendmail=MagicMock()))
+    captured_msg = {}
+
+    class DummySMTP:
+        def send_message(self, msg):
+            captured_msg["msg"] = msg
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: DummySMTP())
 
     subject = "Hello"
     body = "Text content"
     html = "<h1>HTML</h1>"
-    _, _, msg = send_email(subject, body, ["x@y.com"], html=html)
 
-    parts = msg.get_payload()
+    result = send_email(
+        subject=subject,
+        body=body,
+        html=html,
+        recipients=["x@y.com"],
+        from_address="from@example.com"
+    )
+    assert result is True
+
+    msg = captured_msg["msg"]
+    parts = msg.iter_parts()
     assert any(part.get_content_type() == "text/plain" for part in parts)
+    # Important: il faut appeler iter_parts() **à nouveau** car c'est un générateur
+    parts = msg.iter_parts()
     assert any(part.get_content_type() == "text/html" for part in parts)
-
 
 def test_send_email_raises_exception(monkeypatch):
     class FailingSMTP:
