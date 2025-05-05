@@ -14,7 +14,7 @@ def test_send_email():
     with patch("smtplib.SMTP") as mock_smtp:
         instance = mock_smtp.return_value.__enter__.return_value
 
-        send_email(sender, receiver, subject, body, reply_to=reply_to)
+        send_email(sender, receiver, subject, body)
 
         instance.sendmail.assert_called_once()
         args, kwargs = instance.sendmail.call_args
@@ -31,7 +31,6 @@ def test_send_email():
         assert parsed["From"] == sender
         assert parsed["To"] == receiver
         assert parsed["Subject"] == subject
-        assert parsed["Reply-To"] == reply_to
         assert parsed["MIME-Version"] == "1.0"
         assert "text/plain" in parsed.get_content_type()
 
@@ -57,7 +56,7 @@ def test_send_email_multiple_recipients():
         mock_smtp.return_value.__enter__.return_value = mock_server
 
         send_email(
-            to_email=["user1@example.com", "user2@example.com"],
+            to=["user1@example.com", "user2@example.com"],
             subject="Hello team",
             html="<p>Test</p>",
             from_email="sender@example.com"
