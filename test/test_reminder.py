@@ -42,6 +42,11 @@ async def test_send_reminder_with_receipt(monkeypatch):
 
     await reminder.send_reminder(db=MagicMock())
 
+async def send_reminders(db):
+    receipts = Receipt.get_pending_receipts(db)
+    for receipt in receipts:
+        send_email(to=receipt.email_sent_to, subject="Reminder", body="Please send the invoice.")
+
 def test_send_reminder_mock(client, db):
     class FakeQuery:
         def filter(self, *args, **kwargs):
