@@ -54,10 +54,8 @@ def test_send_email_success(monkeypatch):
 
     subject = "Hello"
     body = "Test body"
-    to = ["recipient@example.com"]
+    expected_to = ["recipient@example.com"]
 
-    subject = "Hello"
-    body = "World"
     from_address, to_addresses, msg = send_email(
         to_addresses=["to@example.com"],
         subject=subject,
