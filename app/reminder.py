@@ -6,8 +6,6 @@ from app.models import Receipt, User
 from app.email_sender import send_email
 from app.logger_setup import logger
 from app.auth import get_current_user
-from app.reminder import send_reminders
-
 
 reminder_router = APIRouter()
 
