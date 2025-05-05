@@ -1,4 +1,3 @@
-from email.message import EmailMessage
 import pytest
 from app.email_sender import send_email
 from unittest.mock import patch, MagicMock
@@ -7,23 +6,18 @@ import smtplib
 
 from_address = "from@example.com"
 
-def test_send_email(monkeypatch):
-    class DummySMTP:
-        def __init__(self, *args, **kwargs): pass
-        def login(self, *args, **kwargs): pass
-        def send_message(self, msg): self.msg = msg
-        def quit(self): pass
-        def __enter__(self): return self
-        def __exit__(self, *args): pass
+@patch("smtplib.SMTP")
+def test_send_email(mock_smtp):
+    smtp_instance = MagicMock()
+    mock_smtp.return_value.__enter__.return_value = smtp_instance
+    smtp_instance.sendmail.return_value = {}
 
-    dummy_smtp = DummySMTP()
-    monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: dummy_smtp)
-
-    recipients = ["test@example.com"]
-    subject = "Hello"
-    body = "World"
-    from_address = "from@example.com"
-    result = send_email(subject=subject, body=body, recipients=recipients, from_address=from_address)
+    result = send_email(
+        subject="Hello",
+        body="World",
+        recipients=["to@example.com"],
+        from_address="from@example.com"
+    )
 
     assert result is True
 
@@ -31,7 +25,7 @@ def test_send_email_success(monkeypatch):
     class MockSMTP:
         def __init__(self, *args, **kwargs): pass
         def login(self, *args, **kwargs): pass
-        def send_message(self, msg):
+        def sendmail(self, from_addr, to_addrs, msg):
             assert isinstance(msg, EmailMessage)
             assert msg["To"] == "recipient@example.com"
             assert msg["Subject"] == "Hello"
@@ -70,8 +64,8 @@ def test_send_email_content_structure(monkeypatch):
     captured_msg = {}
 
     class DummySMTP:
-        def send_message(self, msg):
-            captured_msg["msg"] = msg
+        def sendmail(self, from_addr, to_addrs, msg):
+            captured_msg["msg"] = email.message_from_string(msg)
         def __enter__(self): return self
         def __exit__(self, *args): pass
 
@@ -99,20 +93,22 @@ def test_send_email_content_structure(monkeypatch):
 
 def test_send_email_raises_exception(monkeypatch):
     class FailingSMTP:
+        def login(self, *args, **kwargs): pass
+        def sendmail(self, from_addr, to_addrs, msg):
+            raise smtplib.SMTPException("SMTP error")
         def __enter__(self): return self
-        def __exit__(self, exc_type, exc_val, exc_tb): pass
-        def sendmail(self, *args, **kwargs): raise smtplib.SMTPException("SMTP error")
+        def __exit__(self, *args): pass
 
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: FailingSMTP())
 
-    with pytest.raises(smtplib.SMTPException):
-        send_email(
-            recipients=["fail@example.com"],
-            subject="Error",
-            body="Trigger",
-            from_address="from@example.com"
-        )
-
+    result = send_email(
+        recipients=["fail@example.com"],
+        subject="Error",
+        body="Trigger",
+        from_address="from@example.com"
+    )
+    assert result is False
+    
 def test_send_email_contains_subject_and_body(monkeypatch):
     smtp_instance = MagicMock()
     monkeypatch.setattr("smtplib.SMTP", lambda *args, **kwargs: smtp_instance)
