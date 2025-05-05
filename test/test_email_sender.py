@@ -26,10 +26,10 @@ def test_send_email_success(monkeypatch):
         def __init__(self, *args, **kwargs): pass
         def login(self, *args, **kwargs): pass
         def sendmail(self, from_addr, to_addrs, msg):
-            assert isinstance(msg, EmailMessage)
-            assert msg["To"] == "recipient@example.com"
-            assert msg["Subject"] == "Hello"
-            assert msg.get_content().strip() == "Test body"
+            parsed = email.message_from_string(msg)
+            assert parsed["To"] == "recipient@example.com"
+            assert parsed["Subject"] == "Hello"
+            assert "Test body" in parsed.get_payload()
         def quit(self): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
@@ -76,20 +76,23 @@ def test_send_email_content_structure(monkeypatch):
     html = "<h1>HTML</h1>"
 
     result = send_email(
-        subject=subject,
-        body=body,
-        html=html,
-        recipients=["x@y.com"],
-        from_address="from@example.com"
+            subject=subject,
+            body=body,
+            html=html,
+            recipients=["x@y.com"],
+            from_address="from@example.com"
     )
-    assert result is True
+    assert result is True, "Expected email to be sent successfully"
 
     msg = captured_msg["msg"]
-    parts = msg.iter_parts()
-    assert any(part.get_content_type() == "text/plain" for part in parts)
-    # Important: il faut appeler iter_parts() **à nouveau** car c'est un générateur
-    parts = msg.iter_parts()
-    assert any(part.get_content_type() == "text/html" for part in parts)
+    if msg.is_multipart():
+        parts = msg.walk()
+        assert any(p.get_content_type() == "text/plain" for p in parts)
+
+        parts = msg.walk()  # Redémarre le générateur
+        assert any(p.get_content_type() == "text/html" for p in parts)
+    else:
+        assert False, "Email is not multipart"
 
 def test_send_email_raises_exception(monkeypatch):
     class FailingSMTP:
