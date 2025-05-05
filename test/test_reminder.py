@@ -39,7 +39,8 @@ def test_send_reminder_mock(client, db):
         def close(self): pass
 
     monkeypatch.setattr("app.reminder.SessionLocal", lambda: FakeSession())
-    monkeypatch.setattr("app.reminder.send_email", lambda *args, **kwargs: True)
+    async def fake_send_email(*args, **kwargs): return True
+    monkeypatch.setattr("app.reminder.send_email", fake_send_email)
 
     sent = send_reminder(db)
     assert sent == 1
