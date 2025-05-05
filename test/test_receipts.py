@@ -30,5 +30,10 @@ class ReceiptOut(BaseModel):
     client_id: Optional[str] = None
     created_at: datetime
 
-    class Config:
+class Config:
         from_attributes = True
+
+def test_get_receipts_with_token(client, valid_token):
+    response = client.get("/receipts/", headers={"X-API-Token": valid_token})
+    assert response.status_code == 200
+    assert isinstance(response.json(), lis
