@@ -1,6 +1,7 @@
 from email.message import EmailMessage
 import pytest
 from app.email_sender import send_email
+from unittest.mock import patch, MagicMock
 
 def test_send_email_success(monkeypatch):
     class MockSMTP:
@@ -14,8 +15,6 @@ def test_send_email_success(monkeypatch):
         def quit(self): pass
         def __enter__(self): return self
         def __exit__(self, *args): pass
-
-
 
 def test_send_email_multiple_recipients():
     with patch("smtplib.SMTP") as mock_smtp:
@@ -33,7 +32,6 @@ def test_send_email_multiple_recipients():
         recipients = mock_server.sendmail.call_args[0][1]
         assert "user1@example.com" in recipients
         assert "user2@example.com" in recipients
-
 
 def test_send_email_content_structure():
     with patch("smtplib.SMTP") as mock_smtp:
@@ -53,6 +51,44 @@ def test_send_email_raises_exception():
     with patch("smtplib.SMTP", side_effect=RuntimeError("SMTP failed")):
         with pytest.raises(RuntimeError, match="SMTP failed"):
             send_email("to@example.com", "Subject", "<p>body</p>", "from@example.com")
+
+def test_send_email_contains_subject_and_body():
+    with patch("smtplib.SMTP") as mock_smtp:
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_server
+
+        subject = "Newsletter"
+        html = "<p>Important update</p>"
+        send_email("to@example.com", subject, html, "from@example.com")
+
+        message = mock_server.sendmail.call_args[0][2]
+        assert subject in message
+        assert html in message
+        assert "Content-Type" in message
+
+def test_send_email_contains_mime_headers():
+    with patch("smtplib.SMTP") as mock_smtp:
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_server
+
+        to = "recipient@example.com"
+        subject = "Important Info"
+        html_content = "<p>Hello world!</p>"
+        sender = "noreply@example.com"
+        reply_to = "support@example.com"
+
+        send_email(to, subject, html_content, sender, reply_to=reply_to)
+
+        # Récupérer le contenu du message
+        message = mock_server.sendmail.call_args[0][2]
+
+        # Assertions MIME
+        assert f"Subject: {subject}" in message
+        assert "Content-Type: text/html" in message
+        assert html_content in message
+        assert f"Reply-To: {reply_to}" in message
+        assert f"From: {sender}" in message
+        assert f"To: {to}" in message
 
     monkeypatch.setattr("smtplib.SMTP_SSL", lambda *args, **kwargs: MockSMTP())
 
