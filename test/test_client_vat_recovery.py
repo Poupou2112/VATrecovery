@@ -38,6 +38,7 @@ def db():
     finally:
         db.close()
 
+@patch("app.ocr_engine.OCREngine.extract_from_bytes")
 def test_client_receives_vat_recovery_info_from_real_receipt(mock_extract, client, db):
 
     mock_extract.return_value = {
