@@ -49,4 +49,4 @@ def test_extract_fields_with_invalid_ttc():
 def test_get_receipts_with_token(client, valid_token):
     response = client.get("/receipts/", headers={"X-API-Token": valid_token})
     assert response.status_code == 200
-    assert isinstance(response.json(), lis
+    assert isinstance(response.json(), list)
