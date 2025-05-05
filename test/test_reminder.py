@@ -13,6 +13,22 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
+@pytest.mark.asyncio
+async def test_send_reminder_with_receipt(monkeypatch):
+    class DummyReceipt:
+        email_sent_to = "dummy@test.com"
+        file = "dummy.pdf"
+        user = type("User", (), {"client_id": "123"})
+        id = 1
+
+    async def mock_send_email_async(*args, **kwargs):
+        return True
+
+    monkeypatch.setattr(reminder, "get_pending_receipts", lambda db: [DummyReceipt()])
+    monkeypatch.setattr(reminder, "send_email_async", mock_send_email_async)
+
+    await reminder.send_reminder(db=MagicMock())
+
 def test_send_reminder_mock(client, db):
     class FakeQuery:
         def filter(self, *args, **kwargs):
