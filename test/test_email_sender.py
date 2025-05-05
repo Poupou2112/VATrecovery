@@ -87,6 +87,7 @@ def test_send_email_mime_headers():
         assert f"Subject: {subject}" in mime_message
         assert "Content-Type: text/html" in mime_message
         assert f"Reply-To: {reply_to}" in mime_message
+        assert f"From: {sender}" in mime_message
         assert html_content in mime_message
 
 def test_send_email_without_reply_to():
