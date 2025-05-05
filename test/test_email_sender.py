@@ -89,6 +89,18 @@ def test_send_email_mime_headers():
         assert f"Reply-To: {reply_to}" in mime_message
         assert html_content in mime_message
 
+def test_send_email_without_reply_to():
+    from app.email_sender import send_email
+
+    with patch("smtplib.SMTP") as mock_smtp:
+        smtp_instance = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = smtp_instance
+
+        send_email("test@example.com", "Hello", "<p>Content</p>", "no-reply@example.com")
+
+        mime_message = smtp_instance.sendmail.call_args[0][2]
+        assert "Reply-To:" not in mime_message
+
     monkeypatch.setattr("smtplib.SMTP_SSL", lambda *args, **kwargs: MockSMTP())
 
     result = send_email(
