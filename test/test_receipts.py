@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional
+from app.ocr_engine import OCREngine
 
 
 class UserCreate(BaseModel):
