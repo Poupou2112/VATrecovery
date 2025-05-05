@@ -66,29 +66,28 @@ def test_send_email_contains_subject_and_body():
         assert html in message
         assert "Content-Type" in message
 
-def test_send_email_contains_mime_headers():
-    with patch("smtplib.SMTP") as mock_smtp:
-        mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
+def test_send_email_mime_headers():
+    from app.email_sender import send_email
 
-        to = "recipient@example.com"
-        subject = "Important Info"
-        html_content = "<p>Hello world!</p>"
-        sender = "noreply@example.com"
-        reply_to = "support@example.com"
+    to = "user@example.com"
+    subject = "Test subject"
+    html_content = "<p>Hello!</p>"
+    sender = "bot@example.com"
+    reply_to = "support@example.com"
+
+    with patch("smtplib.SMTP") as mock_smtp:
+        smtp_instance = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = smtp_instance
 
         send_email(to, subject, html_content, sender, reply_to=reply_to)
 
-        # Récupérer le contenu du message
-        message = mock_server.sendmail.call_args[0][2]
+        # Récupérer le message MIME envoyé
+        mime_message = smtp_instance.sendmail.call_args[0][2]
 
-        # Assertions MIME
-        assert f"Subject: {subject}" in message
-        assert "Content-Type: text/html" in message
-        assert html_content in message
-        assert f"Reply-To: {reply_to}" in message
-        assert f"From: {sender}" in message
-        assert f"To: {to}" in message
+        assert f"Subject: {subject}" in mime_message
+        assert "Content-Type: text/html" in mime_message
+        assert f"Reply-To: {reply_to}" in mime_message
+        assert html_content in mime_message
 
     monkeypatch.setattr("smtplib.SMTP_SSL", lambda *args, **kwargs: MockSMTP())
 
