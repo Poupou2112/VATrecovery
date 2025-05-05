@@ -82,12 +82,12 @@ async def test_send_reminders_sends_email():
     )
 
     # Simule un db avec query().filter().all()
-    mock_db = MagicMock()
-    mock_db.query().filter().all.return_value = [fake_receipt]
+    db = MagicMock()
+    db.query().filter().all.return_value = [fake_receipt]
 
     # Patch la fonction d'envoi d'email
     with patch("app.reminder.send_email") as mock_send_email:
-        await send_reminders(mock_db)
+        await send_reminders(db)
         mock_send_email.assert_called_once_with(
             to="client@example.com",
             subject="Reminder: Missing Invoice",
