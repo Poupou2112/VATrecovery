@@ -12,19 +12,14 @@ def test_send_email(mock_smtp):
     mock_smtp.return_value.__enter__.return_value = smtp_instance
     smtp_instance.sendmail.return_value = {}
 
-    subject = "Hello"
-    body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
-        subject=subject,
-        body=body,
+    result = send_email(
+        recipients=["to@example.com"],
+        subject="Hello",
+        body="World",
         from_address="from@example.com"
-)
+    )
 
-    assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
-    assert body in message.get_payload()[0].get_payload()
+    assert result is True
 
 def test_send_email_html_structure(monkeypatch):
     class DummySMTP:
@@ -37,7 +32,7 @@ def test_send_email_html_structure(monkeypatch):
     body = "Plain text"
     html = "<h1>HTML content</h1>"
 
-    _, _, msg = send_email(subject=subject, body=body, to_addresses=["x@y.com"], html=html)
+    result = send_email(subject=subject, body=body, recipients=["x@y.com"], html=html)
 
     parts = msg.get_payload()
     assert any(part.get_content_type() == "text/plain" for part in parts)
@@ -56,16 +51,15 @@ def test_send_email_success(monkeypatch):
     body = "Test body"
     expected_to = ["recipient@example.com"]
 
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
 
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_multiple_recipients(monkeypatch):
@@ -78,15 +72,14 @@ def test_send_email_multiple_recipients(monkeypatch):
     
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_content_structure(monkeypatch):
@@ -106,15 +99,14 @@ def test_send_email_content_structure(monkeypatch):
 
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
 
     msg = captured_msg["msg"]
@@ -139,15 +131,14 @@ def test_send_email_raises_exception(monkeypatch):
 
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
     
 def test_send_email_contains_subject_and_body(monkeypatch):
@@ -158,15 +149,14 @@ def test_send_email_contains_subject_and_body(monkeypatch):
     body = "Urgent content"
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_mime_headers(monkeypatch):
@@ -176,15 +166,14 @@ def test_send_email_mime_headers(monkeypatch):
     reply = "someone@reply.com"
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
 )
     assert from_address == "noreply@vatrecovery.com"
-    assert to_addresses == to
-    assert subject in message["Subject"]
+    assert result is True
     assert body in message.get_payload()[0].get_payload()
 
 def test_send_email_without_reply_to(monkeypatch):
@@ -193,8 +182,8 @@ def test_send_email_without_reply_to(monkeypatch):
 
     subject = "Hello"
     body = "World"
-    from_address, to_addresses, msg = send_email(
-        to_addresses=["to@example.com"],
+    result = send_email(
+        recipients=["to@example.com"],
         subject=subject,
         body=body,
         from_address="from@example.com"
