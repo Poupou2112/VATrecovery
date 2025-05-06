@@ -16,10 +16,40 @@ def send_email(
     """
     Send an email to one or more recipients.
 
-    :param recipients: A sing:contentReference[oaicite:0]{index=0}(defaults to DEFAULT_FROM_ADDRESS).
-    :param html: Optional:contentReference[oaicite:1]{index=1}rwise.
+    :param recipients: A single email or a list of emails.
+    :param subject: Email subject line.
+    :param body: Plain-text body.
+    :param from_address: Sender address (defaults to DEFAULT_FROM_ADDRESS).
+    :param html: Optional HTML body.
+    :param reply_to: Optional Reply-To header.
+    :returns: True if sendmail() did not raise an exception, False otherwise.
     """
     # Normalize recipients to a list
-    if isinstance:contentReference[oaicite:2]{index=2}tipart("alternative") if html else MIMEMultipart()
-    msg["From"] = :contentReference[oaicite:3]{index=3}rt if provided
-    if htm:contentReference[oaicite:4]{index=4} True
+    if isinstance(recipients, str):
+        to_addrs = [recipients]
+    else:
+        to_addrs = recipients
+
+    # Build the MIME message
+    msg = MIMEMultipart("alternative") if html else MIMEMultipart()
+    msg["From"] = from_address
+    msg["To"] = ", ".join(to_addrs)
+    msg["Subject"] = subject
+    if reply_to:
+        msg["Reply-To"] = reply_to
+
+    # Attach the plain-text part
+    msg.attach(MIMEText(body, "plain"))
+
+    # Attach the HTML part if provided
+    if html:
+        msg.attach(MIMEText(html, "html"))
+
+    # Send
+    try:
+        with smtplib.SMTP("localhost") as smtp:
+            smtp.sendmail(from_address, to_addrs, msg.as_string())
+    except smtplib.SMTPException:
+        return False
+
+    return True
