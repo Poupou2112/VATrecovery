@@ -1,33 +1,87 @@
 import os
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from werkzeug.security import generate_password_hash
+
 from app.main import app
+from app.models import User
+from app.database import Base, get_db
 
-client = TestClient(app)
+# 1) Configure an in‐memory SQLite database for tests
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+TestingSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine
+)
+# Create all tables
+Base.metadata.create_all(bind=engine)
 
-def test_client_receives_vat_recovery_info_from_real_receipt():
-    # Ensure the test asset exists
-    receipt_path = "test/assets/receipt_sample.png"
-    assert os.path.exists(receipt_path), "Missing test/assets/receipt_sample.png"
+# 2) Override the FastAPI get_db dependency to use our in-memory DB
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    # Hit the upload endpoint with the demo token via Authorization: Bearer
-    with open(receipt_path, "rb") as f:
+app.dependency_overrides[get_db] = override_get_db
+
+@pytest.fixture(scope="module")
+def client():
+    """Provides a TestClient for the app."""
+    return TestClient(app)
+
+@pytest.fixture(scope="function")
+def db():
+    """
+    Yields a fresh DB session per test, rolling back any changes afterwards.
+    """
+    session = TestingSessionLocal()
+    yield session
+    session.rollback()
+    session.close()
+
+def test_client_receives_vat_recovery_info_from_real_receipt(client, db):
+    """
+    Given a valid user with API token and a real PNG receipt in test/assets/,
+    POSTing to /api/upload should return JSON with price_ttc, price_ht and vat_amount,
+    and the arithmetic vat calculation should roughly match.
+    """
+    # 1) Insert a demo user
+    user = User(
+        email="demo@example.com",
+        hashed_password=generate_password_hash("demo123"),
+        api_token="demo-token",
+        client_id="client-123",
+    )
+    db.add(user)
+    db.commit()
+
+    # 2) Ensure the test asset exists
+    asset = os.path.join(os.path.dirname(__file__), "assets", "receipt_sample.png")
+    assert os.path.exists(asset), "Missing receipt_sample.png in test/assets/"
+
+    # 3) Send the upload request with the correct X-API-Token header
+    with open(asset, "rb") as img:
         response = client.post(
             "/api/upload",
-            files={"file": ("receipt_sample.png", f, "image/png")},
-            headers={"Authorization": "Bearer demo-token"},
+            files={"file": ("receipt_sample.png", img, "image/png")},
+            headers={"X-API-Token": "demo-token"},
         )
 
-    assert response.status_code == 200, f"Got {response.status_code}, body={response.text}"
+    # 4) Basic status + content assertions
+    assert response.status_code == 200, response.text
     data = response.json()
+    for field in ("price_ttc", "price_ht", "vat_amount"):
+        assert field in data, f"{field} not returned"
 
-    # Must include these keys
-    for key in ("price_ttc", "price_ht", "vat_amount"):
-        assert key in data, f"Response JSON missing {key}"
-
+    # 5) Rough arithmetic check: (ttc - ht) ≈ vat
     ttc = float(data["price_ttc"])
-    ht  = float(data["price_ht"])
+    ht = float(data["price_ht"])
     vat = float(data["vat_amount"])
-
-    # Basic sanity checks
     assert vat > 0
     assert abs((ttc - ht) - vat) < 1.0
