@@ -1,60 +1,29 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from app.dependencies import get_current_user
-from app.models import Receipt
-from app.init_db import get_db_session
-from app.schemas import User
-from loguru import logger
+from typing import List
 
-dashboard_router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+from app.models import Receipt, User
+from app.schemas import ReceiptOut, UserResponse
+from app.database import get_db_session
+from app.auth import get_current_user
+
+dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
-@dashboard_router.get("/dashboard")
-async def read_dashboard(
-    request: Request,
-    db: Session = Depends(get_db_session),
+@dashboard_router.get("/me", response_model=UserResponse)
+def get_my_profile(current_user: User = Depends(get_current_user)) -> User:
+    return current_user
+
+
+@dashboard_router.get("/receipts", response_model=List[ReceiptOut])
+def get_receipts_for_user(
     current_user: User = Depends(get_current_user),
-    skip: int = 0,
-    limit: int = 10,
+    db: Session = Depends(get_db_session),
 ):
-    try:
-        # Sélection des reçus par client_id
-        receipts = (
-            db.query(Receipt)
-            .filter(Receipt.client_id == current_user.client_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-        count = (
-            db.query(Receipt)
-            .filter(Receipt.client_id == current_user.client_id)
-            .count()
-        )
-
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "receipts": receipts,
-                "user": current_user,
-                "total": count,
-                "skip": skip,
-                "limit": limit,
-            },
-        )
-    except Exception as e:
-        logger.error(f"Erreur lors du rendu du dashboard : {e}")
-        return templates.TemplateResponse(
-            "dashboard.html",
-            {
-                "request": request,
-                "receipts": [],
-                "error": "Erreur lors du chargement des données",
-                "user": current_user,
-            },
-            status_code=500,
-        )
+    receipts = (
+        db.query(Receipt)
+        .filter(Receipt.client_id == current_user.client_id)
+        .order_by(Receipt.created_at.desc())
+        .all()
+    )
+    return receipts
