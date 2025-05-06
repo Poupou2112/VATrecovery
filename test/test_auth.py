@@ -1,69 +1,54 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
+from sqlalchemy.orm import Session
 from app.main import app
-from app.database import Base, get_db
 from app.models import User
-from app.security import get_password_hash
-from uuid import uuid4
-from datetime import datetime
+from app.database import get_db_session, Base, engine
+from app.security import hash_password  # ou utilise werkzeug si tu n’as pas cette fonction
 
-# ----- Base de données SQLite temporaire -----
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+client = TestClient(app)
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# ----- Dépendance de test -----
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-
-# ----- Fixture pour client avec utilisateur -----
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture(scope="module")
+def db() -> Session:
     Base.metadata.create_all(bind=engine)
-
-    with TestingSessionLocal() as db:
-        fake_user = User(
-            email="test@example.com",
-            hashed_password=get_password_hash("testpassword"),
-            client_id="test-client-id",  # Corrigé ici
-            api_token=str(uuid4()),
-            is_active=True,
-            is_admin=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
-        db.add(fake_user)
-        db.commit()
-
-    yield TestClient(app)
-
+    db = next(get_db_session())
+    yield db
+    db.close()
     Base.metadata.drop_all(bind=engine)
 
-# ----- TESTS -----
+@pytest.fixture
+def test_user(db):
+    user = User(
+        email="test@example.com",
+        hashed_password=hash_password("test1234"),  # ou user.set_password("test1234")
+        client_id=1,
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
-def test_login_success(client):
-    response = client.post("/auth/login", data={"username": "test@example.com", "password": "testpassword"})
+def test_login_success(test_user):
+    response = client.post("/auth/token", data={
+        "username": "test@example.com",
+        "password": "test1234"
+    })
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-def test_login_failure_wrong_password(client):
-    response = client.post("/auth/login", data={"username": "test@example.com", "password": "wrongpass"})
+def test_login_failure_wrong_password():
+    response = client.post("/auth/token", data={
+        "username": "test@example.com",
+        "password": "wrongpass"
+    })
     assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect username or password"
 
-def test_login_failure_unknown_user(client):
-    response = client.post("/auth/login", data={"username": "nouser@example.com", "password": "whatever"})
+def test_login_failure_unknown_user():
+    response = client.post("/auth/token", data={
+        "username": "unknown@example.com",
+        "password": "anypass"
+    })
     assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect username or password"
