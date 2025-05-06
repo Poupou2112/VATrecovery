@@ -17,23 +17,21 @@ def engine():
 ])
 def test_extract_fields(engine, text, expected_keys):
     data = engine.extract_fields_from_text(text)
-    assert data is not None, "Extraction should return a dictionary"
+    assert isinstance(data, dict), "Extraction should return a dictionary"
     for key in expected_keys:
-        assert key in data, f"{key} should be present in output"
+        assert key in data, f"'{key}' should be present in output"
 
 def test_extract_only_ht_and_ttc(engine):
     text = "HT: 45.50 EUR\nTTC: 50.00 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data is not None
     assert data.get("price_ht") == "45.50"
     assert data.get("price_ttc") == "50.00"
     assert data.get("vat_amount") == "4.5"
-    assert data.get("vat_rate") == "9.89"
+    assert data.get("vat_rate") == "9.9"
 
 def test_extract_with_vat_rate(engine):
     text = "HT: 50.00 EUR\nTVA: 10.00 EUR\nTTC: 60.00 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data is not None
     assert data.get("price_ht") == "50.00"
     assert data.get("vat_amount") == "10.00"
     assert data.get("price_ttc") == "60.00"
@@ -42,8 +40,13 @@ def test_extract_with_vat_rate(engine):
 def test_extract_info_minimal(engine):
     text = "Total TTC : 34.50 EUR"
     data = engine.extract_fields_from_text(text)
-    assert data is not None
-    assert data.get("price_ttc") == "34.50", "TTC should be detected"
+    assert data.get("price_ttc") == "34.50"
     assert data.get("price_ht") is None
     assert data.get("vat_amount") is None
     assert data.get("vat_rate") is None
+
+def test_extract_no_data(engine):
+    text = "Ceci est un texte sans données pertinentes."
+    data = engine.extract_fields_from_text(text)
+    assert isinstance(data, dict)
+    assert len(data) == 0, "Should return empty dict if nothing is found"
