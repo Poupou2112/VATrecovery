@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.main import app
 from app.models import User
 from app.database import get_db_session, Base, engine
-from app.security import hash_password  # ou utilise werkzeug si tu n’as pas cette fonction
+from werkzeug.security import generate_password_hash
 
 client = TestClient(app)
 
@@ -20,7 +20,7 @@ def db() -> Session:
 def test_user(db):
     user = User(
         email="test@example.com",
-        hashed_password=hash_password("test1234"),  # ou user.set_password("test1234")
+        generate_password_hash=hash_password("test1234"),  # ou user.set_password("test1234")
         client_id=1,
         is_active=True
     )
