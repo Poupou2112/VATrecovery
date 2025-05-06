@@ -1,47 +1,59 @@
 import smtplib
-from email.message import EmailMessage
-from typing import List, Optional, Tuple
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-DEFAULT_FROM_ADDRESS = "noreply@vatrecovery.com"
+DEFAULT_FROM = "no-reply@vatrecovery.com"
 
-def send_email(
-    *,
-    recipients: List[str],
-    subject: str,
-    body: str,
-    from_address: Optional[str] = None,
-    html: Optional[str] = None,
-    reply_to: Optional[str] = None,
-) -> Tuple[str, List[str], EmailMessage]:
+def send_email(to, subject, html=None, from_email=None, reply_to=None, body=None):
     """
-    Send an email to one or more recipients.
-    Returns a tuple (from_address, recipients, EmailMessage).
+    Send an email with both plain-text and optional HTML parts.
+
+    Positional args:
+      to         – single address or list of addresses
+      subject    – email subject
+      html       – HTML content (positional third arg if used)
+      from_email – sender address (positional fourth arg if used)
+
+    Keyword args:
+      body       – plain-text content (if html is provided but no body, html is used as fallback)
+      reply_to   – optional Reply-To header
+
+    Returns True on success, raises on error.
     """
+    # Normalize recipients
+    if isinstance(to, (list, tuple)):
+        recipients = list(to)
+    else:
+        recipients = [to]
 
-    # Normalize inputs
-    from_addr = from_address or DEFAULT_FROM_ADDRESS
-    to_addrs = recipients
+    sender = from_email or DEFAULT_FROM
+    text = body or html or ""
 
-    # Build message
-    msg = EmailMessage()
+    # Build multipart message
+    msg = MIMEMultipart("alternative") if html else MIMEMultipart()
     msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = ", ".join(to_addrs)
+    msg["From"] = sender
+    msg["To"] = ", ".join(recipients)
     if reply_to:
         msg["Reply-To"] = reply_to
 
-    # Always add a text/plain part
-    msg.set_content(body)
+    # Attach plain
+    part1 = MIMEText(text, "plain")
+    msg.attach(part1)
 
-    # If HTML provided, add alternative
+    # Attach HTML if present
     if html:
-        msg.add_alternative(html, subtype="html")
+        part2 = MIMEText(html, "html")
+        msg.attach(part2)
 
-    # Connect & send
+    raw = msg.as_string()
+
+    # Attempt plain SMTP, fallback to SSL if it fails
     try:
-        with smtplib.SMTP("localhost") as smtp:
-            smtp.sendmail(from_addr, to_addrs, msg.as_string())
-    except Exception:
-        # For SMTP exceptions, tests expect False rather than raising
-        return from_addr, to_addrs, msg
-    return from_addr, to_addrs, msg
+        with smtplib.SMTP() as server:
+            server.sendmail(sender, recipients, raw)
+    except smtplib.SMTPException:
+        with smtplib.SMTP_SSL() as server:
+            server.sendmail(sender, recipients, raw)
+
+    return True
