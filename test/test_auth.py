@@ -1,88 +1,58 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.main import app
+from app.database import Base, get_db
 from app.models import User
-from app.database import Base, engine, SessionLocal
-from app.security import generate_password_hash
-from app.init_db import SessionLocal
+from app.security import get_password_hash
 
-Base.metadata.create_all(bind=engine)
-Base.metadata.drop_all(bind=engine)
+# ---------- Setup test database ----------
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
-def setup_module(module):
-    db = SessionLocal()
-    db.query(User).delete()
-    user = User(
-        email="test@example.com",
-        password_hash=generate_password_hash("test123"),
-        client_id="demo",
-        api_token="testtoken"
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    db.close()
-    db.expire_all()
+# ---------- Dependency override ----------
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-client = TestClient(app)
+app.dependency_overrides[get_db] = override_get_db
 
-@pytest.fixture
-def test_user():
-    db = SessionLocal()
-    user = User(email="test@example.com", password_hash=generate_password_hash("test"), api_token="testtoken", client_id="testclient")
-    db.add(user)
-    db.commit()
-    yield user
-    db.delete(user)
-    db.commit()
-    db.close()
-
-@pytest.fixture
-def api_token():
-    return "testtoken"
-
+# ---------- Fixtures ----------
 @pytest.fixture(scope="function")
-def db():
-    db = SessionLocal()
-    db.query(User).delete()
-    db.commit()
-    yield db
-    db.close()
+def client():
+    # Recreate database schema for each test
+    Base.metadata.create_all(bind=engine)
+    with TestingSessionLocal() as db:
+        user = User(
+            email="test@example.com",
+            hashed_password=get_password_hash("testpassword"),
+        )
+        db.add(user)
+        db.commit()
+    yield TestClient(app)
+    Base.metadata.drop_all(bind=engine)
 
-def create_user(db, email="demo@example.com", password="password", client_id="client1"):
-    user = User(email=email, client_id=client_id)
-    user.set_password(password)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-def test_login_success(db):
-    create_user(db)
-    response = client.post("/auth/login", json={
-        "username": "demo@example.com",
-        "password": "password"
-    })
-    data = response.json()
+# ---------- Tests ----------
+def test_login_success(client):
+    response = client.post("/auth/login", data={"username": "test@example.com", "password": "testpassword"})
     assert response.status_code == 200
+    data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-def test_login_failure(db):
-    response = client.post("/auth/login", json={
-        "username": "wrong@example.com",
-        "password": "wrongpass"
-    })
+def test_login_failure_wrong_password(client):
+    response = client.post("/auth/login", data={"username": "test@example.com", "password": "wrong"})
     assert response.status_code == 401
     assert response.json()["detail"] == "Incorrect username or password"
 
-def create_test_user():
-    db = SessionLocal()
-    user = User(
-        email="demo@example.com",
-        password_hash=generate_password_hash("demo123"),
-        api_token="demo-token",
-        client_id="client-123"
-    )
+def test_login_failure_unknown_user(client):
+    response = client.post("/auth/login", data={"username": "unknown@example.com", "password": "testpassword"})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Incorrect username or password"
