@@ -1,30 +1,41 @@
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List, Optional
 
 
-def send_email(subject, body, recipients, from_address="noreply@vatrecovery.com", html=None, reply_to=None):
+def send_email(
+    recipients: List[str],
+    subject: str,
+    body: str,
+    from_address: str = "noreply@vatrecovery.com",
+    reply_to: Optional[str] = None,
+    html: Optional[str] = None,
+    smtp_server: str = "localhost",
+    smtp_port: int = 25,
+) -> bool:
     try:
-        # Construire le message
-        msg = MIMEMultipart("alternative" if html else "mixed")
+        msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = from_address
         msg["To"] = ", ".join(recipients)
+
         if reply_to:
             msg["Reply-To"] = reply_to
 
-        # Ajouter les parties texte et HTML
+        # Attach plain text
         part1 = MIMEText(body, "plain")
         msg.attach(part1)
+
+        # Attach HTML if provided
         if html:
             part2 = MIMEText(html, "html")
             msg.attach(part2)
 
-        # Envoyer le mail
-        with smtplib.SMTP("localhost") as server:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.sendmail(from_address, recipients, msg.as_string())
 
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
+        print(f"Failed to send email: {e}")
+        raise
