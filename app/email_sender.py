@@ -1,65 +1,55 @@
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
-DEFAULT_FROM = "no-reply@vatrecovery.com"
+import smtplib
+from email.message import EmailMessage
+from typing import Union, List, Optional
+
+DEFAULT_FROM_ADDRESS = "noreply@vatrecovery.com"
 
 def send_email(
-    *,
+    recipients: Union[str, List[str]],
     subject: str,
-    body: str = None,
-    html: str = None,
-    recipients: list[str],
-    from_address: str = None,
-    reply_to: str = None
+    body: str,
+    from_address: str = DEFAULT_FROM_ADDRESS,
+    reply_to: Optional[str] = None,
+    html: Optional[str] = None
 ) -> bool:
     """
-    Send an email with plain-text and optional HTML parts.
-
-    Required keyword args:
-      subject      – message subject
-      recipients   – list of destination addresses
-
-    Optional keyword args:
-      body         – plain-text content
-      html         – HTML content
-      from_address – sender address (defaults to DEFAULT_FROM)
-      reply_to     – Reply-To header
+    Envoie un email en texte brut et optionnellement en HTML.
+    :param recipients: adresse unique ou liste d'adresses
+    :param subject: objet du mail
+    :param body: contenu en texte brut
+    :param from_address: adresse d'expédition
+    :param reply_to: adresse de reply-to (facultatif)
+    :param html: contenu HTML (facultatif)
+    :return: True si envoi réussi, sinon exception propagée
     """
-    if not recipients:
-        raise RuntimeError("No recipients provided")
+    # Normalise la liste des destinataires
+    if isinstance(recipients, str):
+        to_addrs = [recipients]
+    else:
+        to_addrs = recipients
 
-    sender = from_address or DEFAULT_FROM
-    text = body if body is not None else (html or "")
-
-    # Build a multipart message (alternative if HTML is provided)
-    msg = MIMEMultipart("alternative") if html else MIMEMultipart()
+    # Construction du message
+    msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = sender
-    msg["To"] = ", ".join(recipients)
+    msg["From"] = from_address
+    msg["To"] = ", ".join(to_addrs)
     if reply_to:
         msg["Reply-To"] = reply_to
 
-    # Attach the plain text part
-    msg.attach(MIMEText(text, "plain"))
+    # Contenu texte
+    msg.set_content(body)
 
-    # Attach the HTML part if present
+    # Contenu HTML en alternative
     if html:
-        msg.attach(MIMEText(html, "html"))
+        msg.add_alternative(html, subtype="html")
 
-    raw = msg.as_string()
-
-    # First try the unencrypted SMTP
+    # Envoi
     try:
-        with smtplib.SMTP() as smtp:
-            smtp.sendmail(sender, recipients, raw)
-    except smtplib.SMTPException:
-        # On failure, try SSL
-        try:
-            with smtplib.SMTP_SSL() as smtp_ssl:
-                smtp_ssl.sendmail(sender, recipients, raw)
-        except smtplib.SMTPException as e:
-            # Give up
-            raise RuntimeError(f"Failed to send email: {e}")
-
-    return True
+        # Vous pouvez remplacer "localhost" / port si besoin
+        with smtplib.SMTP("localhost") as server:
+            server.sendmail(from_address, to_addrs, msg.as_string())
+        return True
+    except Exception:
+        # On laisse l'exception (SMTPException, RuntimeError, etc.) remonter
+        raise
