@@ -4,14 +4,14 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from secrets import token_urlsafe
 from typing import Optional, List
-from app.database import Base
+from app.database import Base  # Assure-toi que Base est défini dans database.py
 
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     api_token = Column(String, unique=True, index=True, default=lambda: token_urlsafe(32))
@@ -86,14 +86,15 @@ class Receipt(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<Receipt file={self.file} user_id={self.user_id} client_id={self.client_id}>"
-
     @classmethod
     def get_pending_receipts(cls, session, days: int = 5) -> List["Receipt"]:
+        """Get receipts waiting for invoice for more than X days"""
         cutoff = datetime.utcnow() - timedelta(days=days)
         return session.query(cls).filter(
             cls.invoice_received == False,
             cls.email_sent == True,
             cls.created_at < cutoff
         ).all()
+
+    def __repr__(self):
+        return f"<Receipt file={self.file} user_id={self.user_id} client_id={self.client_id}>"
