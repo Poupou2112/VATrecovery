@@ -1,10 +1,12 @@
 import re
 from io import BytesIO
+from typing import Optional, List
 from PIL import Image
 import pytesseract
 
 try:
     from google.cloud import vision
+    from google.api_core.exceptions import GoogleAPIError
 except ImportError:
     vision = None
 
@@ -18,18 +20,19 @@ class OCREngine:
         return pytesseract.image_to_string(image, lang="fra")
 
     def extract_text_google_vision(self, image_bytes: bytes) -> str:
-        if not vision:
-            raise RuntimeError("Google Vision client is not available.")
-        client = vision.ImageAnnotatorClient()
-        image = vision.Image(content=image_bytes)
-        response = client.text_detection(image=image)
-        texts = response.text_annotations
-        return texts[0].description if texts else ""
+        try:
+            client = vision.ImageAnnotatorClient()
+            image = vision.Image(content=image_bytes)
+            response = client.text_detection(image=image)
+            texts = response.text_annotations
+            return texts[0].description if texts else ""
+        except (GoogleAPIError, Exception):
+            return ""
 
     def extract_fields_from_text(self, text: str) -> dict:
         patterns = {
             "date": r"(?:\bDate\b[:\s]*)?(\d{2}/\d{2}/\d{4})",
-            "company_name": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-,.()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
+            "company_name": r"(?:\bCompany\b[:\s]*)?([A-Z][A-Za-z0-9&\s\-.,()]+(?:SAS|SARL|SL|GmbH|Inc|Ltd|LLC)?)",
             "vat_number": r"(?:TVA|VAT)[\s:]*([A-Z]{2}[0-9A-Z]{2,})",
             "price_ht": r"(?:HT|Montant HT)[\s:]*([\d,.]+)[\s€EUR]*",
             "price_ttc": r"(?:TTC|Montant TTC|Total TTC)[\s:]*([\d,.]+)[\s€EUR]*",
@@ -49,19 +52,30 @@ class OCREngine:
             if match:
                 extracted[key] = match.group(1).strip()
 
-        # TVA computation
-        try:
-            ht = float(extracted.get("price_ht", "0").replace(",", "."))
-            ttc = float(extracted.get("price_ttc", "0").replace(",", "."))
-            if ht and ttc:
-                vat_val = round(ttc - ht, 2)
-                extracted.setdefault("vat_amount", str(vat_val))
-                extracted["vat_rate"] = str(round((vat_val / ht) * 100, 2))
-        except Exception:
-            pass
+        ht = extracted.get("price_ht")
+        ttc = extracted.get("price_ttc")
+        vat = extracted.get("vat_amount")
+
+        if ht and ttc and not vat:
+            try:
+                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
+                extracted["vat_amount"] = str(round(vat_val, 2))
+            except Exception:
+                pass
+
+        if ht and ttc and "vat_rate" not in extracted:
+            try:
+                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
+                vat_rate = round((vat_val / float(ht.replace(",", "."))) * 100, 2)
+                extracted["vat_rate"] = str(vat_rate)
+            except Exception:
+                pass
 
         return extracted
 
-    def extract_info_from_image(self, image_bytes: bytes) -> dict:
-        text = self.extract_text_google_vision(image_bytes) if self.enable_google_vision else self.extract_text_with_tesseract(image_bytes)
+    def extract_from_bytes(self, image_bytes: bytes) -> dict:
+        if self.enable_google_vision:
+            text = self.extract_text_google_vision(image_bytes)
+        else:
+            text = self.extract_text_with_tesseract(image_bytes)
         return self.extract_fields_from_text(text)
