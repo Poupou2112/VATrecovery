@@ -12,7 +12,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)  # 🔄 renommé correctement
+    hashed_password = Column(String, nullable=False)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     api_token = Column(String, unique=True, index=True, default=lambda: token_urlsafe(32))
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -41,6 +41,23 @@ class User(Base):
     def __repr__(self):
         return f"<User email={self.email} client_id={self.client_id}>"
 
+
+class Client(Base):
+    __tablename__ = "clients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    users = relationship("User", back_populates="client")
+    receipts = relationship("Receipt", back_populates="client")
+
+    def __repr__(self):
+        return f"<Client name={self.name}>"
+
+
 class Receipt(Base):
     __tablename__ = "receipts"
 
@@ -68,6 +85,9 @@ class Receipt(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Receipt file={self.file} user_id={self.user_id} client_id={self.client_id}>"
 
     @classmethod
     def get_pending_receipts(cls, session, days: int = 5) -> List["Receipt"]:
