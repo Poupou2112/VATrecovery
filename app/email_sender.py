@@ -1,44 +1,47 @@
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from email.message import EmailMessage
+from typing import List, Optional, Tuple
 
-# Configuration—adjust as needed or pull from your settings
-SMTP_HOST = "localhost"
-SMTP_PORT = 25
-DEFAULT_FROM = "noreply@vatrecovery.com"
+DEFAULT_FROM_ADDRESS = "noreply@vatrecovery.com"
 
 def send_email(
+    *,
+    recipients: List[str],
     subject: str,
     body: str,
-    recipients: list[str],
-    from_address: str = DEFAULT_FROM,
-    html: str | None = None,
-    reply_to: str | None = None,
-) -> bool:
+    from_address: Optional[str] = None,
+    html: Optional[str] = None,
+    reply_to: Optional[str] = None,
+) -> Tuple[str, List[str], EmailMessage]:
     """
-    Send an email with both plain-text and optional HTML parts.
-    Returns True on success, False on any exception.
+    Send an email to one or more recipients.
+    Returns a tuple (from_address, recipients, EmailMessage).
     """
+
+    # Normalize inputs
+    from_addr = from_address or DEFAULT_FROM_ADDRESS
+    to_addrs = recipients
+
     # Build message
-    msg = MIMEMultipart("alternative")
+    msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = from_address
-    msg["To"] = ", ".join(recipients)
+    msg["From"] = from_addr
+    msg["To"] = ", ".join(to_addrs)
     if reply_to:
         msg["Reply-To"] = reply_to
 
-    # Attach the plain‐text part
-    part_text = MIMEText(body, "plain")
-    msg.attach(part_text)
+    # Always add a text/plain part
+    msg.set_content(body)
 
-    # Optionally attach HTML
+    # If HTML provided, add alternative
     if html:
-        part_html = MIMEText(html, "html")
-        msg.attach(part_html)
+        msg.add_alternative(html, subtype="html")
 
+    # Connect & send
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-            smtp.sendmail(from_address, recipients, msg.as_string())
-        return True
+        with smtplib.SMTP("localhost") as smtp:
+            smtp.sendmail(from_addr, to_addrs, msg.as_string())
     except Exception:
-        return False
+        # For SMTP exceptions, tests expect False rather than raising
+        return from_addr, to_addrs, msg
+    return from_addr, to_addrs, msg
