@@ -5,11 +5,11 @@ from app.main import app
 client = TestClient(app)
 
 def test_client_receives_vat_recovery_info_from_real_receipt():
-    # Ensure the sample asset is present
-    receipt_path = os.path.join("test", "assets", "receipt_sample.png")
-    assert os.path.exists(receipt_path), "L'image de test est manquante"
+    # Path to the packaged sample receipt image
+    receipt_path = os.path.join(os.path.dirname(__file__), "assets", "receipt_sample.png")
+    assert os.path.exists(receipt_path), "Missing test asset: receipt_sample.png"
 
-    # Upload the file under the /api/upload endpoint, passing the demo token
+    # Upload it to your /api/upload endpoint
     with open(receipt_path, "rb") as f:
         response = client.post(
             "/api/upload",
@@ -17,19 +17,17 @@ def test_client_receives_vat_recovery_info_from_real_receipt():
             headers={"X-API-Token": "demo-token"}
         )
 
-    # Expect HTTP 200 and JSON containing the three TVA fields
+    # must return 200 OK
     assert response.status_code == 200, response.text
     data = response.json()
 
-    for field in ("price_ttc", "price_ht", "vat_amount"):
-        assert field in data, f"{field} missing in response"
+    # must contain these keys
+    for key in ("price_ttc", "price_ht", "vat_amount"):
+        assert key in data, f"{key} missing"
 
+    # VAT arithmetic sanity
     ttc = float(data["price_ttc"])
     ht = float(data["price_ht"])
     vat = float(data["vat_amount"])
-
-    # Basic sanity: VAT is positive and approximates ttc - ht
     assert vat > 0
     assert abs((ttc - ht) - vat) < 1.0
-
-    print(f"✅ TVA détectée : {vat:.2f} €")
