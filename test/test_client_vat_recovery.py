@@ -1,88 +1,23 @@
 import os
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from werkzeug.security import generate_password_hash
-
 from app.main import app
-from app.models import User
-from app.database import Base, get_db
 
-# --- Set up an in-memory SQLite DB for testing ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine
-)
+client = TestClient(app)
 
-# Create all tables
-Base.metadata.create_all(bind=engine)
+def test_clie:contentReference[oaicite:7]{index=7} the sample receipt is present
+    receipt_path = "test/assets/receipt_sample.png"
+    assert os:contentReference[oaicite:8]{index=8} Open and POST it with the demo API token
+    with open(receipt_path, "rb") as f:
+        resp:contentReference[oaicite:9]{index=9},
+            files={"file": ("receipt_sample.png", f, "image/png")},
+            headers=:contentReference[oaicite:10]{index=10}rn the expected VAT fields
+    data =:contentReference[oaicite:11]{index=11}mount" in data
 
-# Override the dependency
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    # Sanity: VAT > 0 and matches the differen:contentReference[oaicite:12]{index=12}nt(f"✅ TVA détectée : {vat:.2f}:contentReference[oaicite:13]{index=13}:contentReference[oaicite:15]{index=15}.
+- Posts to `"/api/upload"` with a header `"X-API-Token": "demo-token"`.
+- Verifies the JSON response contains `"price_ttc"`, `"price_ht"` and `"vat_amount"` and that the arithmetic holds.
 
-app.dependency_overrides[get_db] = override_get_db
+With these two files in place, re-run:
 
-@pytest.fixture(scope="module")
-def client():
-    """Provides a TestClient for the app."""
-    return TestClient(app)
-
-@pytest.fixture(scope="function")
-def db():
-    """
-    Yields a fresh DB session per test, rolling back any changes afterwards.
-    """
-    session = TestingSessionLocal()
-    yield session
-    session.rollback()
-    session.close()
-
-def test_client_receives_vat_recovery_info_from_real_receipt(client, db):
-    """
-    Given a valid user with API token and a real PNG receipt in test/assets/,
-    POSTing to /api/upload should return JSON with price_ttc, price_ht and vat_amount,
-    and the arithmetic vat calculation should roughly match.
-    """
-    # 1) Insert a demo user
-    user = User(
-        email="demo@example.com",
-        hashed_password=generate_password_hash("demo123"),
-        api_token="demo-token",
-        client_id="client-123",
-    )
-    db.add(user)
-    db.commit()
-
-    # 2) Check the test asset exists
-    asset = os.path.join(os.path.dirname(__file__), "assets", "receipt_sample.png")
-    assert os.path.exists(asset), "Missing receipt_sample.png in test/assets/"
-
-    # 3) Send the upload request
-    with open(asset, "rb") as img:
-        response = client.post(
-            "/api/upload",
-            files={"file": ("receipt_sample.png", img, "image/png")},
-            headers={"X-API-Token": "demo-token"},
-        )
-
-    # 4) Assertions
-    assert response.status_code == 200, response.text
-    data = response.json()
-    for field in ("price_ttc", "price_ht", "vat_amount"):
-        assert field in data, f"{field} not returned"
-
-    ttc = float(data["price_ttc"])
-    ht = float(data["price_ht"])
-    vat = float(data["vat_amount"])
-    assert vat > 0
-    # tolerance of 1.0 in case of OCR rounding
-    assert abs((ttc - ht) - vat) < 1.0
+```bash
+pytest --cov=app --cov-report=term-missing --cov-report=xml
