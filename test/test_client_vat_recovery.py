@@ -4,20 +4,30 @@ from app.main import app
 
 client = TestClient(app)
 
-def test_clie:contentReference[oaicite:7]{index=7} the sample receipt is present
+def test_client_receives_vat_recovery_info_from_real_receipt():
+    # Ensure the sample receipt is present
     receipt_path = "test/assets/receipt_sample.png"
-    assert os:contentReference[oaicite:8]{index=8} Open and POST it with the demo API token
+    assert os.path.exists(receipt_path), "Test receipt image is missing"
+
+    # Open and POST it with the demo API token header
     with open(receipt_path, "rb") as f:
-        resp:contentReference[oaicite:9]{index=9},
+        response = client.post(
+            "/api/upload",
             files={"file": ("receipt_sample.png", f, "image/png")},
-            headers=:contentReference[oaicite:10]{index=10}rn the expected VAT fields
-    data =:contentReference[oaicite:11]{index=11}mount" in data
+            headers={"X-API-Token": "demo-token"}
+        )
 
-    # Sanity: VAT > 0 and matches the differen:contentReference[oaicite:12]{index=12}nt(f"✅ TVA détectée : {vat:.2f}:contentReference[oaicite:13]{index=13}:contentReference[oaicite:15]{index=15}.
-- Posts to `"/api/upload"` with a header `"X-API-Token": "demo-token"`.
-- Verifies the JSON response contains `"price_ttc"`, `"price_ht"` and `"vat_amount"` and that the arithmetic holds.
+    # Should succeed with HTTP 200
+    assert response.status_code == 200
 
-With these two files in place, re-run:
+    data = response.json()
+    # JSON payload must include these keys
+    for key in ("price_ttc", "price_ht", "vat_amount"):
+        assert key in data, f"Missing key {key} in response JSON"
 
-```bash
-pytest --cov=app --cov-report=term-missing --cov-report=xml
+    # Basic sanity: VAT = TTC - HT (within a euro tolerance)
+    ttc = float(data["price_ttc"])
+    ht  = float(data["price_ht"])
+    vat = float(data["vat_amount"])
+    assert vat > 0
+    assert abs((ttc - ht) - vat) < 1.0
