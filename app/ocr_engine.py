@@ -1,74 +1,25 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime, timedelta
-from werkzeug.security import generate_password_hash, check_password_hash
-from secrets import token_urlsafe
-from typing import Optional, List
 import re
+from io import BytesIO
 from PIL import Image
 import pytesseract
-from io import BytesIO
 
-Base = declarative_base()
+try:
+    from google.cloud import vision
+except ImportError:
+    vision = None
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
-    client_id = Column(String, nullable=False, index=True)
-    api_token = Column(String, unique=True, index=True, default=lambda: token_urlsafe(32))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_active = Column(Boolean, default=True)
-    
-    # Relations
-    receipts = relationship("Receipt", back_populates="user")
-
-    def set_password(self, password: str) -> None:
-        """Set password hash from plain text password"""
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password: str) -> bool:
-        """Verify password against stored hash"""
-        return check_password_hash(self.password_hash, password)
-    
-    @classmethod
-    def get_by_token(cls, session, token: str) -> Optional["User"]:
-        """Get user by API token if active"""
-        return session.query(cls).filter_by(api_token=token, is_active=True).first()
-    
-    def regenerate_token(self) -> str:
-        """Generate a new API token"""
-        self.api_token = token_urlsafe(32)
-        return self.api_token
 
 class OCREngine:
-    def ocr_bytes(self, content: bytes) -> str:
-        # Simule l’OCR (ou appelle un vrai moteur comme Google Vision)
-        return content.decode("utf-8", errors="ignore")
-        
     def __init__(self, enable_google_vision: bool = True):
-        self.enable_google_vision = enable_google_vision
-
-    def extract_info_from_image(self, image_bytes: bytes) -> dict:
-        if self.enable_google_vision:
-            from google.cloud import vision
-            client = vision.ImageAnnotatorClient()
-            image = vision.Image(content=image_bytes)
-            response = client.text_detection(image=image)
-            text = response.full_text_annotation.text if response.text_annotations else ""
-        else:
-            text = self.extract_text_with_tesseract(image_bytes)
-        return self.extract_fields_from_text(text)
+        self.enable_google_vision = enable_google_vision and vision is not None
 
     def extract_text_with_tesseract(self, image_bytes: bytes) -> str:
         image = Image.open(BytesIO(image_bytes))
         return pytesseract.image_to_string(image, lang="fra")
 
     def extract_text_google_vision(self, image_bytes: bytes) -> str:
-        from google.cloud import vision
+        if not vision:
+            raise RuntimeError("Google Vision client is not available.")
         client = vision.ImageAnnotatorClient()
         image = vision.Image(content=image_bytes)
         response = client.text_detection(image=image)
@@ -97,59 +48,20 @@ class OCREngine:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 extracted[key] = match.group(1).strip()
-                
-        ht = extracted.get("price_ht")
-        ttc = extracted.get("price_ttc")
-        vat = extracted.get("vat_amount")
-        vat_rate = extracted.get("vat_rate")
-        
-        if ht and ttc and not vat:
-            try:
-                vat_val = float(ttc.replace(",", ".")) - float(ht.replace(",", "."))
-                extracted["vat_amount"] = str(round(vat_val, 2))
-            except Exception:
-                pass
-        
+
+        # TVA computation
+        try:
+            ht = float(extracted.get("price_ht", "0").replace(",", "."))
+            ttc = float(extracted.get("price_ttc", "0").replace(",", "."))
+            if ht and ttc:
+                vat_val = round(ttc - ht, 2)
+                extracted.setdefault("vat_amount", str(vat_val))
+                extracted["vat_rate"] = str(round((vat_val / ht) * 100, 2))
+        except Exception:
+            pass
+
         return extracted
 
-    def extract_from_bytes(self, image_bytes: bytes) -> dict:
-        text = self.extract_text_google_vision(image_bytes)
+    def extract_info_from_image(self, image_bytes: bytes) -> dict:
+        text = self.extract_text_google_vision(image_bytes) if self.enable_google_vision else self.extract_text_with_tesseract(image_bytes)
         return self.extract_fields_from_text(text)
-        
-
-class Receipt(Base):
-    __tablename__ = "receipts"
-
-    id = Column(Integer, primary_key=True, index=True)
-    file = Column(String, nullable=False)
-    email_sent_to = Column(String, nullable=False)
-    date = Column(String, nullable=True)
-    company_name = Column(String, nullable=True)
-    vat_number = Column(String, nullable=True)
-    price_ttc = Column(Float, nullable=True)
-    price_ht = Column(Float, nullable=True)
-    vat_amount = Column(Float, nullable=True)
-    vat_rate = Column(Integer, nullable=True)
-    email_sent = Column(Boolean, default=False)
-    invoice_received = Column(Boolean, default=False)
-    ocr_text = Column(String, nullable=True)
-    
-    # Foreign keys
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    client_id = Column(String, nullable=False, index=True)
-    
-    # Relations
-    user = relationship("User", back_populates="receipts")
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    @classmethod
-    def get_pending_receipts(cls, session, days: int = 5) -> List["Receipt"]:
-        """Get receipts waiting for invoice for more than X days"""
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        return session.query(cls).filter(
-            cls.invoice_received == False,
-            cls.email_sent == True,
-            cls.created_at < cutoff
-        ).all()
