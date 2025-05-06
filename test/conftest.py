@@ -1,71 +1,77 @@
-import os
 import pytest
-import fastapi_limiter
-
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from app.main import app
-from app.models import Base
-from app.database import get_db
-from app.init_db import init_default_data
-from app.main import app
-from app.database import Base, engine
+from app.database import Base, get_db_session
+from app.models import User, Client
+from werkzeug.security import generate_password_hash
 
-os.environ["ENV"] = "test" 
-
-Base.metadata.create_all(bind=engine)
-
-DATABASE_URL = "sqlite:///:memory:"  # base en mémoire pour les tests
+# --- Configuration base de test ---
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# --- Override la dépendance de session ---
+def override_get_db_session():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-fastapi_limiter.FastAPILimiter.init = lambda *args, **kwargs: None
+app.dependency_overrides[get_db_session] = override_get_db_session
 
-# Setup général : création et initialisation de la base de test
-@pytest.fixture(scope="session", autouse=True)
-def setup_database():
+
+@pytest.fixture(scope="session")
+def db():
+    # Crée la base et les tables pour tous les tests
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    init_default_data()
-
-# Fixture pour injecter une session DB de test
-@pytest.fixture(scope="function")
-def db():
     db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    yield db
+    db.close()
+    Base.metadata.drop_all(bind=engine)
 
-# Override de la dépendance de FastAPI
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
+@pytest.fixture(scope="module")
+def client():
+    return TestClient(app)
+
 
 @pytest.fixture
-def test_user(session):
-    user = User(email="test@example.com", client_id="testclient")
-    user.set_password("password")
-    session.add(user)
-    session.commit()
+def test_client(db):
+    """Crée un client d'entreprise pour l'utilisateur"""
+    client = Client(name="Test Corp")
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+@pytest.fixture
+def test_user(db, test_client):
+    """Crée un utilisateur de test avec mot de passe haché"""
+    user = User(
+        email="test@example.com",
+        hashed_password=generate_password_hash("test1234"),
+        client_id=test_client.id,
+        is_active=True,
+        is_admin=False
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user
 
-app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture
-def api_token():
-    return "testtoken"
-
-# Fixture client FastAPI
-@pytest.fixture(scope="function")
-def client():
-    with TestClient(app) as c:
-        yield c
-
-__all__ = ["TestingSessionLocal"]
+def auth_token(client, test_user):
+    """Renvoie un token JWT valide pour l’utilisateur de test"""
+    response = client.post("/auth/token", data={
+        "username": "test@example.com",
+        "password": "test1234"
+    })
+    assert response.status_code == 200
+    return response.json()["access_token"]
