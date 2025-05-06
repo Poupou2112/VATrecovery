@@ -1,49 +1,51 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Union, List, Optional
+from typing import List, Optional, Tuple, Union
 
 SMTP_HOST = "localhost"
 SMTP_PORT = 25
 
+
 def send_email(
     *,
-    to: Union[str, List[str]],
+    recipients: Union[str, List[str]],
     subject: str,
-    body: str = "",
+    body: str,
     html: Optional[str] = None,
-    from_email: str = "noreply@vatrecovery.com",
+    from_address: str = "noreply@vatrecovery.com",
     reply_to: Optional[str] = None,
 ) -> bool:
     """
-    Send an email (plain-text and/or HTML) via SMTP.
-    Returns True on success, or raises on failure.
+    Send a multipart (plain+optional HTML) email via SMTP.
+    Returns True on success, False on failure.
     """
-    if isinstance(to, str):
-        to_addrs = [to]
+    # Normalize recipients to a list
+    if isinstance(recipients, str):
+        to_addrs: List[str] = [recipients]
     else:
-        to_addrs = to
+        to_addrs = recipients
 
+    # Build the MIME message
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = from_email
+    msg["From"] = from_address
     msg["To"] = ", ".join(to_addrs)
     if reply_to:
         msg["Reply-To"] = reply_to
 
-    # Attach plain‐text part
-    text_part = MIMEText(body, "plain")
-    msg.attach(text_part)
+    # Attach plain-text part
+    plain_part = MIMEText(body, "plain")
+    msg.attach(plain_part)
 
-    # Attach HTML part if provided
+    # Attach HTML part if given
     if html is not None:
         html_part = MIMEText(html, "html")
         msg.attach(html_part)
 
-    # Connect & send
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        # If you need auth, uncomment and configure:
-        # server.login(USERNAME, PASSWORD)
-        server.sendmail(from_email, to_addrs, msg.as_string())
-
-    return True
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+            smtp.sendmail(from_address, to_addrs, msg.as_string())
+        return True
+    except Exception:
+        return False
