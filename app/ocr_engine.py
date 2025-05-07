@@ -1,79 +1,74 @@
 import re
 from typing import Dict
-from io import BytesIO
-
 from PIL import Image
 import pytesseract
+from io import BytesIO
 
 class OCREngine:
     """
-    Moteur OCR minimaliste avec option Google Vision.
-    Si enable_google_vision=False, utilise Tesseract local.
+    Moteur d’OCR combinant Google Vision ou Tesseract local.
     """
-
     def __init__(self, enable_google_vision: bool = False):
         self.enable_google_vision = enable_google_vision
 
-    def extract_from_bytes(self, image_bytes: bytes) -> Dict[str, str]:
+    def extract_from_bytes(self, content: bytes) -> Dict:
         """
-        Point d'entrée pour extraire les champs depuis un flux d'octets.
-        Choisit le moteur OCR en fonction de enable_google_vision.
+        Point d’entrée : on récupère d’abord le texte brut,
+        puis on en extrait les champs.
         """
+        text = self._get_text(content)
+        return self.extract_fields_from_text(text)
+
+    def _get_text(self, content: bytes) -> str:
         if self.enable_google_vision:
-            # Nécessite d'installer et configurer google-cloud-vision
             from google.cloud import vision
             client = vision.ImageAnnotatorClient()
-            vision_image = vision.Image(content=image_bytes)
-            response = client.text_detection(image=vision_image)
-            text = (
-                response.full_text_annotation.text
-                if response.full_text_annotation and response.full_text_annotation.text
-                else ""
-            )
+            image = vision.Image(content=content)
+            resp = client.text_detection(image=image)
+            return resp.full_text_annotation.text or ""
         else:
-            text = self._extract_text_with_tesseract(image_bytes)
+            img = Image.open(BytesIO(content))
+            return pytesseract.image_to_string(img, lang="fra")
 
-        return self._extract_fields_from_text(text)
-
-    def _extract_text_with_tesseract(self, image_bytes: bytes) -> str:
+    def extract_fields_from_text(self, text: str) -> Dict[str, str]:
         """
-        OCR via Tesseract sur image en mémoire.
-        """
-        img = Image.open(BytesIO(image_bytes))
-        return pytesseract.image_to_string(img, lang="fra")
-
-    def _extract_fields_from_text(self, text: str) -> Dict[str, str]:
-        """
-        Extrait date, compagnie, num TVA, montants HT/TTC, montant TVA et calcule le taux.
+        Extrait date, compagnie, HT, TTC, TVA, etc. et calcule tva_rate.
         """
         patterns = {
-            "date":       r"(?:\bDate\b)[:\s]*(\d{2}/\d{2}/\d{4})",
-            "company_name": r"(?:\bCompany\b|Soci[eé]t[eé])[:\s]*([A-Za-z0-9&\s\-,.()]+)",
-            "vat_number": r"(?:TVA|VAT)[:\s]*([A-Z]{2}\d+)",
-            "price_ht":   r"(?:HT|Montant HT)[:\s]*([\d\.,]+)",
-            "price_ttc":  r"(?:TTC|Montant TTC|Total TTC)[:\s]*([\d\.,]+)",
-            "vat_amount": r"(?:TVA)[:\s]*([\d\.,]+)"
+            "date":        r"(?:Date[:\s]*)?(\d{2}/\d{2}/\d{4})",
+            "company_name":r"(?:Company|Soci[eé]t[eé])[:\s]*([A-Za-z0-9 &\-,.()]+)",
+            "vat_number":  r"(?:TVA|VAT)[:\s]*([A-Z]{2}[0-9A-Z]+)",
+            "price_ht":    r"(?:HT|Montant HT)[:\s]*([\d,.]+)",
+            "price_ttc":   r"(?:TTC|Montant TTC|Total TTC)[:\s]*([\d,.]+)",
+            "vat_amount":  r"TVA[:\s]*([\d,.]+)"
         }
 
         extracted: Dict[str, str] = {}
-        for key, patt in patterns.items():
-            m = re.search(patt, text, re.IGNORECASE)
+        for key, pat in patterns.items():
+            m = re.search(pat, text, re.IGNORECASE)
             if m:
-                # Uniformisation des nombres
                 extracted[key] = m.group(1).replace(",", ".").strip()
 
-        # Calcul du taux de TVA si possible
+        # Si HT & TTC sont trouvés et TVA manquante, on la calcule
         ht = extracted.get("price_ht")
         ttc = extracted.get("price_ttc")
-        if ht and ttc:
+        if ht and ttc and "vat_amount" not in extracted:
             try:
-                ht_val = float(ht)
-                ttc_val = float(ttc)
-                vat_val = ttc_val - ht_val
-                # Montant TVA prioritaire extrait, sinon override
-                extracted.setdefault("vat_amount", f"{vat_val:.2f}")
-                extracted["vat_rate"] = f"{(vat_val / ht_val * 100):.2f}"
-            except Exception:
+                ht_f  = float(ht)
+                ttc_f = float(ttc)
+                val = round(ttc_f - ht_f, 2)
+                extracted["vat_amount"] = f"{val:.2f}"
+            except ValueError:
+                pass
+
+        # Taux de TVA
+        if "price_ht" in extracted and "vat_amount" in extracted:
+            try:
+                ht_f    = float(extracted["price_ht"])
+                vat_amt = float(extracted["vat_amount"])
+                rate = round((vat_amt / ht_f) * 100, 2)
+                extracted["vat_rate"] = f"{rate:.2f}"
+            except ValueError:
                 pass
 
         return extracted
