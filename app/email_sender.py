@@ -5,21 +5,30 @@ from typing import Union, List, Optional
 DEFAULT_FROM_ADDRESS = "noreply@vatrecovery.com"
 
 def send_email(
-    to_addresses: Union[str, List[str]],
-    subject: str,
-    body: str,
+    to_addresses: Union[str, List[str]] = None,
+    subject: str = "",
+    body: str = "",
     from_address: str = DEFAULT_FROM_ADDRESS,
     html: Optional[str] = None,
     reply_to: Optional[str] = None,
+    recipients: Union[str, List[str]] = None,
+    to: Union[str, List[str]] = None,
 ) -> bool:
     """
     Envoie un email via SMTP en mode texte ou multipart (texte + HTML).
-    - to_addresses : une adresse ou une liste d’adresses
+    Les destinataires peuvent être passés via ``to_addresses``, ``recipients`` ou ``to``.
+    - to_addresses / recipients / to : une adresse ou une liste d’adresses
     - subject      : objet du message
     - body         : texte brut
     - html         : contenu HTML optionnel
     - reply_to     : adresse de réponse optionnelle
     """
+    # Normalisation des alias de destinataires
+    if to_addresses is None:
+        to_addresses = recipients or to
+    if to_addresses is None:
+        raise ValueError("No recipient specified")
+
     # Normalisation en liste
     if isinstance(to_addresses, str):
         to_list = [to_addresses]
