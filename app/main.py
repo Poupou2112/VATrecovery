@@ -115,7 +115,7 @@ async def upload_receipt(
     # On ajoute l’ID du client dans la réponse
     data["client_id"] = client.client_id
     return data
-
+    
 app.include_router(api)
 
 # --- API REST interne (protégé OAuth2) ---
