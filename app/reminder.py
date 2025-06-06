@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, status
 from app.database import SessionLocal
 from app.models import Receipt, User
+import asyncio
 from app.email_sender import send_email
 from app.logger_setup import logger
 from app.auth import get_current_user
@@ -10,6 +11,11 @@ from app.auth import get_current_user
 reminder_router = APIRouter()
 
 REMINDER_DELAY_DAYS = 7  # Peut être déplacé dans settings si besoin
+
+
+async def send_email_reminder(**kwargs) -> bool:
+    """Wrapper to run send_email in a thread for async usage."""
+    return await asyncio.to_thread(send_email, **kwargs)
 
 async def send_reminders(db: Session):
     cutoff = datetime.utcnow() - timedelta(days=5)
@@ -20,7 +26,7 @@ async def send_reminders(db: Session):
     ).all()
 
     for receipt in receipts:
-        await send_email(
+        await send_email_reminder(
             to=receipt.email_sent_to,
             subject="Reminder: Missing Invoice",
             body=f"Please send the invoice for receipt {receipt.file}"
